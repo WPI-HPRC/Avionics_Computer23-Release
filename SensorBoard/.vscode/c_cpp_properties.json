@@ -8,10 +8,10 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/include",
-                "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/src",
+                "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/include",
+                "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/src",
                 "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/libraries/Wire/src",
-                "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/.pio/libdeps/feather32u4/ACAN2517FD/src",
+                "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/.pio/libdeps/feather32u4/ACAN2517FD/src",
                 "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/libraries/SPI/src",
                 "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/cores/MiniCore",
                 "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/variants/standard",
@@ -26,10 +26,10 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/include",
-                    "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/src",
+                    "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/include",
+                    "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/src",
                     "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/libraries/Wire/src",
-                    "c:/Users/samay/OneDrive/Documents/HPRC/AvionicComputer23/SensorBoard/.pio/libdeps/feather32u4/ACAN2517FD/src",
+                    "c:/Users/samay/OneDrive/Documents/HPRC/Avionics_Computer23-Release/SensorBoard/.pio/libdeps/feather32u4/ACAN2517FD/src",
                     "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/libraries/SPI/src",
                     "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/cores/MiniCore",
                     "C:/Users/samay/.platformio/packages/framework-arduino-avr-minicore/variants/standard",
