@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "core": "cpp",
+        "lu": "cpp",
+        "array": "cpp",
+        "string": "cpp"
+    }
+}
