@@ -48,20 +48,20 @@ void setup() {
   }
 }
 
-static const uint32_t interval = 1000UL / LoopFrequency;
+static const uint32_t interval = (uint32_t)(1000UL / LoopFrequency);
 volatile uint32_t prevTime = 0;
 
 void loop() {
-if (millis() - prevTime >= interval){
-    prevTime = millis();
-    sensorboard.readSensor();
-    CANFDMessage message;
-    message.id = 0x0001U;
-    message.ext = false;
-    message.len = 48;
-    for (int i = 0; i < 48; i++) {
-      message.data[i] = sensorboard.getBuffer(i);
+if (millis() - prevTime >= interval){ // Timer
+    prevTime = millis(); // Reset timer before reading sensors
+    sensorboard.readSensor(); // Read sensors
+    CANFDMessage message; // Create CAN message
+    message.id = 0x0001U; // Set ID
+    message.ext = false; // Set extended ID
+    message.len = 48; // Set length
+    for (int i = 0; i < 48; i++) { // Set data
+      message.data[i] = sensorboard.getBuffer(i); // Get data from sensorboard
     }
-    can.tryToSend(message);
+    can.tryToSend(message); // Send CAN message
   }
 }
