@@ -14,6 +14,8 @@
 #include "Arduino.h"
 #include "LoRaE32.h"
 
+#include <SoftwareSerial.h>
+
 #define PACKET_BEG "BEGB"
 #define TIMESTAMP_IDENT "TSP"
 #define STATE_IDENT "STT"
@@ -46,6 +48,8 @@ private:
 	constexpr static uint8_t PIN_M1  = 3;
 	constexpr static uint8_t PIN_AUX = 4;
 	constexpr static uint8_t DATA_SIZE = 32; // Bytes
+    constexpr static byte rxPin = 4;
+    constexpr static byte txPin = 5;
 
     struct RocketPacket {
         uint32_t timestamp;
@@ -58,7 +62,12 @@ private:
 
     uint8_t currentPacket[DATA_SIZE];
     RocketPacket currentRocketPacket;
+    SoftwareSerial ESerial = SoftwareSerial(rxPin, txPin);
 
-    LoRaE32 * transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
+    LoRaE32 * transceiver = new LoRaE32(&ESerial, PIN_M0, PIN_M1, PIN_AUX);
+
+    // LoRaE32 * transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
+
+    // LoRaE32 * transceiver = new LoRaE32(&LoRaSerial, PIN_M0, PIN_M1, PIN_AUX);
     
 };

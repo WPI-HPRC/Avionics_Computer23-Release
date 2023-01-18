@@ -17,7 +17,7 @@ TelemetryBoard::TelemetryBoard() {
 
 int TelemetryBoard::initTelem() {
 
-    Serial1.begin(9600);
+    // Serial1.begin(9600);
 
     transceiver->init(1);
 
@@ -91,8 +91,8 @@ void TelemetryBoard::onLoop() {
         case RX: {
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+                printToGS();
             }
-            printToGS();
             break;
 
         }
