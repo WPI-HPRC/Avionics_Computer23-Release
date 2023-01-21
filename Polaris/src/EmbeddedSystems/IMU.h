@@ -39,5 +39,11 @@ class IMU{
     bool CheckWhoAmI();
     bool SensorEnable();
 
-    Vector3<int16_t> getAccelVals();
+    Vector3<int16_t> getAccelVals() {
+        return Accelerometer_Raw_Values;
+    };
+    
+    Vector3<int16_t> getGyroVals() {
+        return Gyro_Raw_Values;
+    };
 };

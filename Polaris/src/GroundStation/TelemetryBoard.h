@@ -19,6 +19,16 @@
 #define STATE_IDENT "STT"
 #define ALTITUDE_IDENT "ALT"
 #define TEMPERATURE_IDENT "TMP"
+#define PRESSURE_IDENT "PRS"
+
+#define ACCELX_IDENT "ACX"
+#define ACCELY_IDENT "ACY"
+#define ACCELZ_IDENT "ACZ"
+
+#define GYROX_IDENT "GYX"
+#define GYROY_IDENT "GYY"
+#define GYROZ_IDENT "GYZ"
+
 #define PACKET_END "ENDB"
 
 enum TelemBoardState {
@@ -40,9 +50,13 @@ public:
         uint8_t state;
         float altitude;
         float temperature;
-        int16_t accelX;
-        int16_t accelY;
-        int16_t accelZ;
+        float pressure;
+        // int16_t accelX;
+        // int16_t accelY;
+        // int16_t accelZ;
+        // int16_t gyroX;
+        // int16_t gyroY;
+        // int16_t gyroZ;
     };
 
     TelemBoardState getState() {
@@ -67,8 +81,6 @@ private:
     RocketPacket currentRocketPacket;
 
     LoRaE32 * transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
-
-
 
     // void setTelemState(uint8_t currentState) {
     //     this->currentRocketPacket.state = currentState;

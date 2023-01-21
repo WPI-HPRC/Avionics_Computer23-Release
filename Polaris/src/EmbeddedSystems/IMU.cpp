@@ -144,7 +144,3 @@ void IMU::readSensor(){
     Gyro_Raw_Values.y = processHighLowBytes(Buffer[8],Buffer[9]);
     Gyro_Raw_Values.z = processHighLowBytes(Buffer[10],Buffer[11]);
 }
-
-Vector3<int16_t> IMU::getAccelVals() {
-    return Accelerometer_Raw_Values;
-}

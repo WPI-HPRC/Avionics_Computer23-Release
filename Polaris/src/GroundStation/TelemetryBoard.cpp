@@ -3,7 +3,7 @@
  * @author Ground Station
  * @brief Telemetry board transceiver code
  * @version 0.1
- * @date 2023-1-13
+ * @date 2023-1-20
  * 
  * @copyright Copyright (c) 2022
  * 
@@ -65,6 +65,41 @@ void TelemetryBoard::printToGS() {
     float temperature = currentRocketPacket.temperature;
     uint8_t * tmpB = (uint8_t *) &temperature;
 
+    float pressure = currentRocketPacket.pressure;
+    uint8_t * prsB = (uint8_t *) &pressure;
+
+    // float accelx = currentRocketPacket.accelX;
+    // uint8_t * acxB = (uint8_t *) &accelx;
+
+    // float accely = currentRocketPacket.accelY;
+    // uint8_t * acyB = (uint8_t *) &accely;
+
+    // float accelz = currentRocketPacket.accelZ;
+    // uint8_t * aczB = (uint8_t *) &accelz;
+
+    // float gyrox = currentRocketPacket.gyroX;
+    // uint8_t * gyxB = (uint8_t *) &gyrox;
+
+    // float gyroy = currentRocketPacket.gyroY;
+    // uint8_t * gyyB = (uint8_t *) &gyroy;
+
+    // float gyroz = currentRocketPacket.gyroZ;
+    // uint8_t * gyzB = (uint8_t *) &gyroz;
+
+    // Serial.println(sizeof(currentRocketPacket));
+
+    // Serial.print("Timestamp: ");
+    // Serial.println(timestamp);
+
+    // Serial.println("----");
+    // Serial.print("Altitude: ");
+    // Serial.println(altitude);
+
+    // Serial.println("----");
+    // Serial.print("Temp: ");
+    // Serial.println(temperature);
+    // Serial.println("----");
+
     Serial.print(PACKET_BEG);
     
     Serial.print(TIMESTAMP_IDENT);
@@ -88,6 +123,48 @@ void TelemetryBoard::printToGS() {
     Serial.write(tmpB[1]);
     Serial.write(tmpB[0]);
 
+    Serial.print(PRESSURE_IDENT);
+    Serial.write(prsB[3]);
+    Serial.write(prsB[2]);
+    Serial.write(prsB[1]);
+    Serial.write(prsB[0]);
+
+    // Serial.print(ACCELX_IDENT);
+    // Serial.write(acxB[3]);
+    // Serial.write(acxB[2]);
+    // Serial.write(acxB[1]);
+    // Serial.write(acxB[0]);
+
+    // Serial.print(ACCELY_IDENT);
+    // Serial.write(acyB[3]);
+    // Serial.write(acyB[2]);
+    // Serial.write(acyB[1]);
+    // Serial.write(acyB[0]);
+
+    // Serial.print(ACCELZ_IDENT);
+    // Serial.write(aczB[3]);
+    // Serial.write(aczB[2]);
+    // Serial.write(aczB[1]);
+    // Serial.write(aczB[0]);
+
+    // Serial.print(GYROX_IDENT);
+    // Serial.write(gyxB[3]);
+    // Serial.write(gyxB[2]);
+    // Serial.write(gyxB[1]);
+    // Serial.write(gyxB[0]);
+
+    // Serial.print(GYROY_IDENT);
+    // Serial.write(gyyB[3]);
+    // Serial.write(gyyB[2]);
+    // Serial.write(gyyB[1]);
+    // Serial.write(gyyB[0]);
+
+    // Serial.print(GYROY_IDENT);
+    // Serial.write(gyzB[3]);
+    // Serial.write(gyzB[2]);
+    // Serial.write(gyzB[1]);
+    // Serial.write(gyzB[0]);
+    
     Serial.print(PACKET_END);
 }
 
@@ -101,13 +178,9 @@ void TelemetryBoard::onLoop() {
                 printToGS();
             }
             break;
-
         }
 
         case LOW_POWER: {
-            
-            transceiver->SetTransmitPower(3);
-            transceiver->SaveParameters();
 
             Serial.println("TX: Low Power!");
 
@@ -117,7 +190,7 @@ void TelemetryBoard::onLoop() {
 
         case HIGH_POWER: {
 
-            Serial.println("TX: High Power!)");
+            Serial.println("TX: High Power!");
 
             transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
             break;
