@@ -1,7 +1,11 @@
 #include <Wire.h>
+#include <Metro.h>
 #include "SensorBoardLibraries/SensorBoard.hpp"
+#include "SensorBoardConstants.h"
 
-static const uint32_t LoopFrequency = 100UL; // 100 Hz
+Metro timer = Metro(1000UL / LOOP_FREQUENCY); // Hz converted to ms
+int counter = 0; // counts how many times the loop runs
+int timestamp;
 
 static const byte MCP2517FD_CS = 10;
 static const byte MCP2517FD_INT = 2;
@@ -48,13 +52,13 @@ void setup() {
   }
 }
 
-static const uint32_t interval = (uint32_t)(1000UL / LoopFrequency);
-volatile uint32_t prevTime = 0;
-
 void loop() {
-if (millis() - prevTime >= interval){ // Timer
-    prevTime = millis(); // Reset timer before reading sensors
+if (timer.check() == 1){ // Timer
     sensorboard.readSensor(); // Read sensors
+    
+    counter++;
+    timestamp = counter * (1000UL / LOOP_FREQUENCY);
+
     CANFDMessage message; // Create CAN message
     message.id = 0x0001U; // Set ID
     message.ext = false; // Set extended ID

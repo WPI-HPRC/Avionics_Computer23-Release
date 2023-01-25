@@ -1,5 +1,7 @@
 #include <Arduino.h>
-#include "ControllerBoardLibraries/ControllerBoard.hpp"
+#include <ACAN2517FD.h>
+#include <Metro.h>
+#include "ControllerBoardConstants.h"
 
 // CAN Setup
 static const byte MCP2517FD_CS = 10;
@@ -7,7 +9,9 @@ static const byte MCP2517FD_INT = 2;
 
 ACAN2517FD can(MCP2517FD_CS, SPI, MCP2517FD_INT);
 
-#define ACCEL_THRESHOLD 10
+Metro timer = Metro(1000UL / LOOP_FREQUENCY); // Hz converted to ms
+int counter = 0; // counts how many times the loop runs
+int timestamp;
 
 int16_t accelMag;
 
@@ -30,6 +34,7 @@ bool timeout(uint16_t length) {
 
 bool updateSensorData() {
   // process sensor data when it comes in over CAN, put in data fields
+  // Read CAN messages
 }
 
 void setup() {
@@ -66,68 +71,73 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if (timer.check() == 1) { // controls how frequently this loop runs
+    // update function call, receives CAN messages
+    updateSensorData();
 
-  // update function call
-  updateSensorData();
+    switch (state) {
 
-  switch (state) {
+      case PRELAUNCH:
+        // init sensors, datalog
 
-    case PRELAUNCH:
-      // init sensors, datalog
+        // if accel high enough, case = BOOST
+        if (accelMag > ACCEL_THRESHOLD) {
+          state = BOOST;
+        }
 
-      // if accel high enough, case = BOOST
-      if (accelMag > ACCEL_THRESHOLD) {
-        state = BOOST;
-      }
-
-      break;
-    case BOOST:
-      // current est = 5.5 sec
-      if (timeout(6)) {
-        state = ABORT;
         break;
-      }
-      // datalog
+      case BOOST:
+        // current est = 5.5 sec
+        if (timeout(6)) {
+          state = ABORT;
+          break;
+        }
+        // datalog
 
-      // if decel occurs, case = COAST
-      if (accelMag < ACCEL_THRESHOLD) { // or more sophisticated test for decel?
-        state = COAST;
-      }
+        // if decel occurs, case = COAST
+        if (accelMag < ACCEL_THRESHOLD) { // or more sophisticated test for decel?
+          state = COAST;
+        }
 
-      break;
-    case COAST:
-      // current est = 20 sec
-      if (timeout(20)) {
-        state = ABORT;
         break;
-      }
-      // active airbrakes control
+      case COAST:
+        // current est = 20 sec
+        if (timeout(20)) {
+          state = ABORT;
+          break;
+        }
+        // active airbrakes control
 
-      // if descending, case = DESCENT
+        // if descending, case = DESCENT
 
-      break;
-    case DESCENT:
-      // current est = 100 (drogue) + 90 (main)
-      if (timeout(200)) {
-        state = ABORT;
         break;
-      }
-      // datalog
+      case DESCENT:
+        // current est = 100 (drogue) + 90 (main)
+        if (timeout(200)) {
+          state = ABORT;
+          break;
+        }
+        // datalog
 
-      // if accel jumps aka landing, case = POSTFLIGHT
+        // if accel jumps aka landing, case = POSTFLIGHT
 
-      break;
-    case POSTFLIGHT:
-      // datalog
+        break;
+      case POSTFLIGHT:
+        // datalog
 
-      break;
-    case ABORT:
-      // jump to here if anything goes terribly wrong (but obv it won't)
+        break;
+      case ABORT:
+        // jump to here if anything goes terribly wrong (but obv it won't)
 
-      break;
+        break;
 
-    default:
+      default:
 
-      break;
+        break;
+    }
+    counter++;
+    timestamp = counter * (1000UL / LOOP_FREQUENCY);
+    // Send CAN messages
+    
   }
 }
