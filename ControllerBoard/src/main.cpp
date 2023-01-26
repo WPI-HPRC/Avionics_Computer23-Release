@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include "ControllerBoardLibraries/ControllerBoard.hpp"
+#include <ControllerBoardLibraries/ControllerBoard.hpp>
+#include <Metro.h>
 
 // CAN Setup
 static const byte MCP2517FD_CS = 10;
@@ -38,7 +39,7 @@ void setup() {
   ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_20MHz, 500UL * 1000UL, DataBitRateFactor::x10);
   settings.mRequestedMode = ACAN2517FDSettings::InternalLoopBack;
   settings.mDriverTransmitFIFOSize = 3;
-  settings.mDriverReceiveFIFOSize = 3;
+  settings.mDriverReceiveFIFOSize = 10;
   const uint32_t errorCode = can.begin(settings, [] { can.isr(); });
   if (errorCode == 0) {
     Serial.print ("Bit Rate prescaler: ") ;
@@ -65,7 +66,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
   // update function call
   updateSensorData();
