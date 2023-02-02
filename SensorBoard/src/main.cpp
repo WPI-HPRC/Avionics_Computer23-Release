@@ -46,6 +46,7 @@ void setup() {
     Serial.print ("Configuration error 0x") ;
     Serial.println (errorCode, HEX) ;
   }
+  sensorboard.setup();
 }
 
 static const uint32_t interval = (uint32_t)(1000UL / LoopFrequency);
