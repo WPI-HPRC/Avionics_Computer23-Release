@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include <ACAN2517FD.h>
-#include <Metro.h>
+#include "Libraries/ACAN2517FD/ACAN2517FD.h"
+#include "Libraries/MetroTimer/Metro.h"
 #include "ControllerBoardConstants.h"
+#include "Airbrakes.h"
 
 // CAN Setup
 static const byte MCP2517FD_CS = 10;
@@ -73,12 +74,14 @@ void loop() {
   // put your main code here, to run repeatedly:
   if (timer.check() == 1) { // controls how frequently this loop runs
     // update function call, receives CAN messages
-    updateSensorData();
+    // updateSensorData();
 
     switch (state) {
 
       case PRELAUNCH:
         // init sensors, datalog
+
+        // Close airbrakes
 
         // if accel high enough, case = BOOST
         if (accelMag > ACCEL_THRESHOLD) {
@@ -88,16 +91,17 @@ void loop() {
         break;
       case BOOST:
         // current est = 5.5 sec
-        if (timeout(6)) {
+        if (timeout(6)) { // Will this timeout hold us in the state? Need to globalize this timeout somehow
           state = ABORT;
           break;
         }
         // datalog
 
+        // Keep airbrakes closed
+
         // if decel occurs, case = COAST
-        if (accelMag < ACCEL_THRESHOLD) { // or more sophisticated test for decel?
-          state = COAST;
-        }
+        // Check if acceleration is around a threshold of 0
+          // How accurate is the Kalman filter?
 
         break;
       case COAST:
@@ -107,8 +111,11 @@ void loop() {
           break;
         }
         // active airbrakes control
+        // Sweep program for test launch
 
         // if descending, case = DESCENT
+          // Velocity 0?
+          // Decreasing altitude
 
         break;
       case DESCENT:
@@ -120,6 +127,7 @@ void loop() {
         // datalog
 
         // if accel jumps aka landing, case = POSTFLIGHT
+          // What is accel jump? What value are we expecting?
 
         break;
       case POSTFLIGHT:
@@ -128,6 +136,7 @@ void loop() {
         break;
       case ABORT:
         // jump to here if anything goes terribly wrong (but obv it won't)
+        // datalog
 
         break;
 
