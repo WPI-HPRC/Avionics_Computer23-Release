@@ -9,7 +9,6 @@ static const byte MCP2517FD_CS = 10;
 static const byte MCP2517FD_INT = 2;
 
 ACAN2517FD can(MCP2517FD_CS, SPI, MCP2517FD_INT);
-
 Metro timer = Metro(1000UL / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0; // counts how many times the loop runs
 int timestamp;
