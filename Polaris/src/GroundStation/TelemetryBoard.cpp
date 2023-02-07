@@ -1,59 +1,89 @@
-/**
- * @file TelemetryBoard.cpp
- * @author Ground Station
- * @brief Telemetry board transceiver code
- * @version 0.1
- * @date 2023-1-20
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #include "TelemetryBoard.h"
 
-TelemetryBoard::TelemetryBoard() {
-
+TelemetryBoard::TelemetryBoard(BoardType boardType) {
+    this->boardType = boardType;
 }
 
-int TelemetryBoard::initTelem() {
+int TelemetryBoard::init() {
+    switch(boardType) {
+        case(teensy): { // If teensy, initialize hw serial 1 and begin at 9600 baud
+            Serial1.begin(9600);
 
-    Serial1.begin(9600);
+            transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
+            break;
+        }
+        case(atmega): { //If atmega, initialize software serial and begin at 9600baud
+            SoftwareSerial ESerial(PIN_RX, PIN_TX);
+            ESerial.begin(9600);
 
-    transceiver->init(1);
+            transceiver = new LoRaE32(&ESerial, PIN_M0, PIN_M1, PIN_AUX);
+            break;
+        }
+    }
 
+    if(!transceiver->init()) {
+        Serial.println("Error initializing telemetry!");
+        return -1;
+    }
+
+    // Configure EByte E32-900T20S
     transceiver->SetAddressH(0);
-	transceiver->SetAddressL(0);        
-    transceiver->SetChannel(58); // this is 920 mHz :)
-
-    transceiver->SetParityBit(0); //Speed bit
-    transceiver->SetUARTBaudRate(3); //9600 baud
-    transceiver->SetAirDataRate(4); // air data rate: 9.6K ;)
+    transceiver->SetAddressL(0); // Broadcast and rx all
+    transceiver->SetChannel(20); // 20 - 430MHz for E32-433T20S
+    
+    transceiver->SetParityBit(0); // Parity bit -> 8N1
+    transceiver->SetUARTBaudRate(3); // 3 = 9600baud
+    transceiver->SetAirDataRate(4); // 3 = 4.8kbps, 4 = 9.6kbps
 
     transceiver->SetTransmissionMode(0);
     transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(1);
-    transceiver->SetTransmitPower(0);
-    transceiver->SetAddressH(0);
-    transceiver->SetAddressL(0);
-    transceiver->SetParityBit(0);
-    transceiver->SetUARTBaudRate(3);
-    transceiver->SetTransmissionMode(0);
-    transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(1);
+    transceiver->SetWORTIming(0);
+    transceiver->SetFECMode(1);
+    transceiver->SetTransmitPower(0); // Max Power
 
-    transceiver->SaveParameters(); // NOTIHNG WILL BE SAVED... UNLESS... SAVEPARAMETERS IS CALLED :(
+    transceiver->SaveParameters();
     transceiver->PrintParameters();
-
-    Serial.println("Telemetry board intialized!");
 
     return 1;
 }
 
-void TelemetryBoard::setState(TelemBoardState state) {
-    this->telemetryState = state;
+int TelemetryBoard::onLoop() {
+
+    switch(telemetryState) {
+        case(RX): {
+            Serial.println(transceiver->available());
+            if(transceiver->available()) {
+                transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+
+                printPacketToGS();
+                // int i = (int) sizeof(currentRocketPacket);
+
+                // uint8_t * rocketB = (uint8_t *) &currentRocketPacket;
+
+                // for(int k = 0; k < i; k++) {
+                //     Serial.print(rocketB[k]);
+
+                //     if(k == i-1) {
+                //         Serial.println("");
+                //     } else {
+                //         Serial.print(", ");
+                //     }
+                // }
+            }
+
+            break;
+        }
+        case(TX): {
+            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+
+            break;
+        }
+    }
+
+    return 1;
 }
 
-void TelemetryBoard::printToGS() {
+void TelemetryBoard::printPacketToGS() {
     uint32_t timestamp = currentRocketPacket.timestamp;
     uint8_t * tspB = (uint8_t *) &timestamp;
 
@@ -67,38 +97,6 @@ void TelemetryBoard::printToGS() {
 
     float pressure = currentRocketPacket.pressure;
     uint8_t * prsB = (uint8_t *) &pressure;
-
-    // float accelx = currentRocketPacket.accelX;
-    // uint8_t * acxB = (uint8_t *) &accelx;
-
-    // float accely = currentRocketPacket.accelY;
-    // uint8_t * acyB = (uint8_t *) &accely;
-
-    // float accelz = currentRocketPacket.accelZ;
-    // uint8_t * aczB = (uint8_t *) &accelz;
-
-    // float gyrox = currentRocketPacket.gyroX;
-    // uint8_t * gyxB = (uint8_t *) &gyrox;
-
-    // float gyroy = currentRocketPacket.gyroY;
-    // uint8_t * gyyB = (uint8_t *) &gyroy;
-
-    // float gyroz = currentRocketPacket.gyroZ;
-    // uint8_t * gyzB = (uint8_t *) &gyroz;
-
-    // Serial.println(sizeof(currentRocketPacket));
-
-    // Serial.print("Timestamp: ");
-    // Serial.println(timestamp);
-
-    // Serial.println("----");
-    // Serial.print("Altitude: ");
-    // Serial.println(altitude);
-
-    // Serial.println("----");
-    // Serial.print("Temp: ");
-    // Serial.println(temperature);
-    // Serial.println("----");
 
     Serial.print(PACKET_BEG);
     
@@ -129,71 +127,20 @@ void TelemetryBoard::printToGS() {
     Serial.write(prsB[1]);
     Serial.write(prsB[0]);
 
-    // Serial.print(ACCELX_IDENT);
-    // Serial.write(acxB[3]);
-    // Serial.write(acxB[2]);
-    // Serial.write(acxB[1]);
-    // Serial.write(acxB[0]);
-
-    // Serial.print(ACCELY_IDENT);
-    // Serial.write(acyB[3]);
-    // Serial.write(acyB[2]);
-    // Serial.write(acyB[1]);
-    // Serial.write(acyB[0]);
-
-    // Serial.print(ACCELZ_IDENT);
-    // Serial.write(aczB[3]);
-    // Serial.write(aczB[2]);
-    // Serial.write(aczB[1]);
-    // Serial.write(aczB[0]);
-
-    // Serial.print(GYROX_IDENT);
-    // Serial.write(gyxB[3]);
-    // Serial.write(gyxB[2]);
-    // Serial.write(gyxB[1]);
-    // Serial.write(gyxB[0]);
-
-    // Serial.print(GYROY_IDENT);
-    // Serial.write(gyyB[3]);
-    // Serial.write(gyyB[2]);
-    // Serial.write(gyyB[1]);
-    // Serial.write(gyyB[0]);
-
-    // Serial.print(GYROY_IDENT);
-    // Serial.write(gyzB[3]);
-    // Serial.write(gyzB[2]);
-    // Serial.write(gyzB[1]);
-    // Serial.write(gyzB[0]);
-    
     Serial.print(PACKET_END);
+
 }
 
-void TelemetryBoard::onLoop() {
-    //Update packet
+//Getters
+TelemBoardState TelemetryBoard::getState() {
+    return telemetryState;
+}
 
-    switch(telemetryState) {
-        case RX: {
-            if(transceiver->available()) {
-                transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-                printToGS();
-            }
-            break;
-        }
+//Setters
+void TelemetryBoard::setState(TelemBoardState state) {
+    this->telemetryState = state;
+}
 
-        case LOW_POWER: {
-
-            Serial.println("TX: Low Power!");
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            break;
-        }
-
-        case HIGH_POWER: {
-
-            Serial.println("TX: High Power!");
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            break;
-        }
-    }
-};
+void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
+    this->currentRocketPacket = newPacket;
+}
