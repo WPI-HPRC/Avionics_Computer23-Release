@@ -30,7 +30,7 @@ int TelemetryBoard::init() {
     // Configure EByte E32-900T20S
     transceiver->SetAddressH(0);
     transceiver->SetAddressL(0); // Broadcast and rx all
-    transceiver->SetChannel(58); // 58 - 920MHz for E32-900T20S
+    transceiver->SetChannel(20); // 58 - 920MHz for E32-900T20S
                                  // 20 - 920MHz for E32-915T20D
     
     transceiver->SetParityBit(0); // Parity bit -> 8N1
@@ -56,9 +56,8 @@ int TelemetryBoard::onLoop() {
             // Serial.println(transceiver->available());
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, packetSize);
-                printPacketToGS();
 
-                // Serial.println(currentRocketPacket.timestamp);
+                Serial.println(currentRocketPacket.altitude);
             }
 
             break;
@@ -82,21 +81,14 @@ void TelemetryBoard::printPacketToGS() {
 
     uint8_t state = currentRocketPacket.state;
 
+    float altitude = currentRocketPacket.altitude;
+    uint8_t * altB = (uint8_t *) &altitude;
+
     float temperature = currentRocketPacket.temperature;
     uint8_t * tmpB = (uint8_t *) &temperature;
 
     float pressure = currentRocketPacket.pressure;
     uint8_t * prsB = (uint8_t *) &pressure;
-
-    Serial.println(timestamp);
-    for(int i=0; i < sizeof(tspB); i++) {
-        Serial.print(tspB[i]);
-        if(i == sizeof(tspB) - 1) {
-            Serial.println("");
-        } else { 
-            Serial.print(", ");
-        }
-    }
 
     Serial.print(PACKET_BEG);
     
@@ -109,6 +101,12 @@ void TelemetryBoard::printPacketToGS() {
     Serial.print(STATE_IDENT);
     Serial.write(state);
 
+    Serial.print(ALTITUDE_IDENT);
+    Serial.write(altB[3]);
+    Serial.write(altB[2]);
+    Serial.write(altB[1]);
+    Serial.write(altB[0]);
+
     Serial.print(TEMPERATURE_IDENT);
     Serial.write(tmpB[3]);
     Serial.write(tmpB[2]);
@@ -116,10 +114,10 @@ void TelemetryBoard::printPacketToGS() {
     Serial.write(tmpB[0]);
 
     Serial.print(PRESSURE_IDENT);
-    Serial.write(prsB[0]);
-    Serial.write(prsB[1]);
-    Serial.write(prsB[2]);
     Serial.write(prsB[3]);
+    Serial.write(prsB[2]);
+    Serial.write(prsB[1]);
+    Serial.write(prsB[0]);
 
     Serial.print(PACKET_END);
 
@@ -136,5 +134,6 @@ void TelemetryBoard::setState(TelemBoardState state) {
 }
 
 void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
+    // this->currentRocketPacket = newPacket;
     memcpy(&currentRocketPacket, &newPacket, packetSize);
 }
