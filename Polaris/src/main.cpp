@@ -21,10 +21,12 @@ void loop() {
       currentRocketPacket.altitude = 100.0;
       currentRocketPacket.pressure = 29.92;
       currentRocketPacket.temperature = 5.0;
+
       telemBoard->setCurrentPacket(currentRocketPacket);
     }
 
     telemBoard->onLoop();
 
     delay(100);
+
 } 

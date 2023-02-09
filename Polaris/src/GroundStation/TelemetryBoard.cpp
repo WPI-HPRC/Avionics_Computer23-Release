@@ -8,6 +8,7 @@ int TelemetryBoard::init() {
     switch(boardType) {
         case(teensy): { // If teensy, initialize hw serial 1 and begin at 9600 baud
             Serial1.begin(9600);
+            Serial.println("Teensy");
 
             transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
             break;
@@ -29,7 +30,8 @@ int TelemetryBoard::init() {
     // Configure EByte E32-900T20S
     transceiver->SetAddressH(0);
     transceiver->SetAddressL(0); // Broadcast and rx all
-    transceiver->SetChannel(20); // 20 - 430MHz for E32-433T20S
+    transceiver->SetChannel(20); // 58 - 920MHz for E32-900T20S
+                                 // 20 - 920MHz for E32-915T20D
     
     transceiver->SetParityBit(0); // Parity bit -> 8N1
     transceiver->SetUARTBaudRate(3); // 3 = 9600baud
@@ -53,29 +55,19 @@ int TelemetryBoard::onLoop() {
         case(RX): {
             Serial.println(transceiver->available());
             if(transceiver->available()) {
-                transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+                transceiver->GetStruct(&currentRocketPacket, packetSize);
 
-                printPacketToGS();
-                // int i = (int) sizeof(currentRocketPacket);
-
-                // uint8_t * rocketB = (uint8_t *) &currentRocketPacket;
-
-                // for(int k = 0; k < i; k++) {
-                //     Serial.print(rocketB[k]);
-
-                //     if(k == i-1) {
-                //         Serial.println("");
-                //     } else {
-                //         Serial.print(", ");
-                //     }
-                // }
+                Serial.println(currentRocketPacket.timestamp);
             }
 
             break;
         }
         case(TX): {
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-
+            bool packetSuccess = transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+            Serial.print("Packet: ");
+            Serial.println(currentRocketPacket.timestamp);
+            Serial.print("Success?: ");
+            Serial.println(packetSuccess);
             break;
         }
     }
@@ -142,5 +134,6 @@ void TelemetryBoard::setState(TelemBoardState state) {
 }
 
 void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
-    this->currentRocketPacket = newPacket;
+    // this->currentRocketPacket = newPacket;
+    memcpy(&currentRocketPacket, &newPacket, packetSize);
 }
