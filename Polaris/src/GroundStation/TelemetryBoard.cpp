@@ -43,7 +43,7 @@ int TelemetryBoard::init() {
     transceiver->SetFECMode(1);
     transceiver->SetTransmitPower(0); // Max Power
 
-    transceiver->SaveParameters();
+    transceiver->SaveParameters(PERMANENT);
     transceiver->PrintParameters();
 
     return 1;
@@ -53,11 +53,11 @@ int TelemetryBoard::onLoop() {
 
     switch(telemetryState) {
         case(RX): {
-            Serial.println(transceiver->available());
+            // Serial.println(transceiver->available());
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, packetSize);
 
-                Serial.println(currentRocketPacket.timestamp);
+                Serial.println(currentRocketPacket.altitude);
             }
 
             break;
