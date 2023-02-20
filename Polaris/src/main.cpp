@@ -2,67 +2,79 @@
 
 #include <GroundStation/TelemetryBoard.h>
 
-#include <EmbeddedSystems/IMU.h>
-#include <EmbeddedSystems/MS5611.h>
+//Peripherals
+#include <Peripherials/MS5611.h>
+#include <Peripherials/ICM42688.h>
 
-IMU imu(Wire, 0x68);
-MS5611 barometer;
+TelemetryBoard * telemBoard = new TelemetryBoard(teensy);
 
-TelemetryBoard telemBoard = TelemetryBoard();
+RocketPacket currentRocketPacket;
 
-double referencePressure;
+MS5611 * barometer = new MS5611(0x77);
+ICM42688 * imu = new ICM42688(Wire, 0x68);
 
 void setup() {
   Serial.begin(115200);
 
-  Wire.begin();
-  Wire.setClock(400000);
+  telemBoard->init();
+  telemBoard->setState(RX);
 
-  telemBoard.initTelem();
-  telemBoard.setState(HIGH_POWER);
-
-  if(telemBoard.getState() == LOW_POWER || telemBoard.getState() == HIGH_POWER) {
-    imu.setup();
-    barometer.begin();
-    referencePressure = barometer.readPressure();
+  //Initialize Sensors
+  if(barometer->begin()) {
+    Serial.println("Successfully initialized barometer!");
+  } else {
+    Serial.println("Barometer Not Initialized!");
   }
+  if(imu->begin() < 0) {
+    Serial.println("IMU Not Initialized");
+  }
+
+  //Configure Barometer
+  barometer->setOversampling(OSR_ULTRA_LOW);
+
+  //Configure IMU
+  imu->setAccelFS(ICM42688::gpm8); // Range: +/- 8G
+  imu->setGyroFS(ICM42688::dps500); // Range: +/- 500 deg/s
+
+  imu->setAccelODR(ICM42688::odr100); // Output Rate: 100Hz
+  imu->setGyroODR(ICM42688::odr100); // Output Rate: 100Hz
+
 }
 
 void loop() {
 
-  if(telemBoard.getState() == LOW_POWER || telemBoard.getState() == HIGH_POWER) {
-    imu.readSensor();
+    if(telemBoard->getState() == TX) {
+      //Read Sensor Data
+      barometer->read();
+      imu->getAGT();
 
-    // Vector3<int16_t> accelVector = imu.getAccelVals();
-    // Vector3<int16_t> gyroVector = imu.getGyroVals();
+      float acX = imu->accX();
+      float acY = imu->accY();
+      float acZ = imu->accZ();
 
-    TelemetryBoard::RocketPacket newRocketPacket;
-    // newRocketPacket.accelX = accelVector.x;
-    // newRocketPacket.accelY = accelVector.y;
-    // newRocketPacket.accelZ = accelVector.z;
-    
-    // newRocketPacket.gyroX = gyroVector.x;
-    // newRocketPacket.gyroY = gyroVector.y;
-    // newRocketPacket.gyroZ = gyroVector.z;
+      float gyX = imu->gyrX();
+      float gyY = imu->gyrY();
+      float gyZ = imu->gyrZ();
 
-    newRocketPacket.state = 0;
+      float newTemperature = barometer->getTemperature(); // deg C
+      float newPressure = barometer->getPressure(); // hPa or mbar
 
-    float temp = barometer.readTemperature();
-    float pressure = barometer.readPressure();
 
-    float absAlt = barometer.getAltitude(pressure);
-    // float relAlt = barometer.getAltitude(pressure, referencePressure;
+      currentRocketPacket.timestamp = millis();
+      currentRocketPacket.pressure = newPressure;
+      currentRocketPacket.temperature = newTemperature;
+      currentRocketPacket.acX = acX;
+      currentRocketPacket.acY = acY;
+      currentRocketPacket.acZ = acZ;
+      currentRocketPacket.gyX = gyX;
+      currentRocketPacket.gyY = gyY;
+      currentRocketPacket.gyZ = gyZ;
 
-    newRocketPacket.altitude = absAlt; // m
-    newRocketPacket.temperature = temp; // C
-    newRocketPacket.pressure = pressure; // Pa
+      telemBoard->setCurrentPacket(currentRocketPacket);
+    }
 
-    newRocketPacket.timestamp = millis();
+    telemBoard->onLoop();
 
-    telemBoard.setRocketPacket(newRocketPacket);
-  }
+    delay(100);
 
-  telemBoard.onLoop();
-
-  delay(100);
 }
