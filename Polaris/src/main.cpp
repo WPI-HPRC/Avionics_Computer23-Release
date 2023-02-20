@@ -10,7 +10,7 @@ void setup() {
   Serial.begin(115200);
 
   telemBoard->init();
-  telemBoard->setState(TX);
+  telemBoard->setState(RX);
 }
 
 void loop() {
@@ -27,6 +27,6 @@ void loop() {
 
     telemBoard->onLoop();
 
-    delay(1000);
+    delay(100);
 
 } 
