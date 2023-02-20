@@ -32,12 +32,16 @@ enum BoardType {
 };
 
 struct RocketPacket {
-    // char callsign[7];
     uint32_t timestamp;
     uint32_t state;
-    float altitude;
     float pressure;
     float temperature;
+    float acX;
+    float acY;
+    float acZ;
+    float gyX;
+    float gyY;
+    float gyZ;
 };
 
 class TelemetryBoard {
