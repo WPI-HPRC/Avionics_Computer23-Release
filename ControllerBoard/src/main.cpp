@@ -2,7 +2,6 @@
 #include "Libraries/ACAN2517FD/ACAN2517FD.h"
 #include "Libraries/MetroTimer/Metro.h"
 #include "ControllerBoardConstants.h"
-#include "Airbrakes.h"
 
 // CAN Setup
 static const byte MCP2517FD_CS = 10;
@@ -11,9 +10,11 @@ static const byte MCP2517FD_INT = 2;
 ACAN2517FD can(MCP2517FD_CS, SPI, MCP2517FD_INT);
 Metro timer = Metro(1000UL / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0; // counts how many times the loop runs
-int timestamp;
+float timestamp;
 
 int16_t accelMag;
+
+unsigned long state_start;
 
 enum AvionicsState {
   PRELAUNCH,
@@ -29,15 +30,20 @@ AvionicsState state = ABORT;
 // checks whether the state has timed out yet
 bool timeout(uint16_t length) {
   // check state length against current time - start time for the current state
-  return false;
+  if (millis() - state_start >= length) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
-bool updateSensorData() {
-  // process sensor data when it comes in over CAN, put in data fields
-  // Read CAN messages
-}
+// bool updateSensorData() {
+//   // process sensor data when it comes in over CAN, put in data fields
+//   // Read CAN messages
+// }
 
 void setup() {
+  Serial.begin(9600);
   // put your setup code here, to run once:
   // CAN Setup cont.
   ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_20MHz, 500UL * 1000UL, DataBitRateFactor::x10);
@@ -81,12 +87,13 @@ void loop() {
         // init sensors, datalog
 
         // Close airbrakes
+        // Send message to power board to actuate the motor
 
         // if accel high enough, case = BOOST
         if (accelMag > ACCEL_THRESHOLD) {
           state = BOOST;
+          state_start = millis();
         }
-
         break;
       case BOOST:
         // current est = 5.5 sec
@@ -111,6 +118,7 @@ void loop() {
         }
         // active airbrakes control
         // Sweep program for test launch
+        // Send message to power board to actuate the motor
 
         // if descending, case = DESCENT
           // Velocity 0?
@@ -146,6 +154,9 @@ void loop() {
     counter++;
     timestamp = counter * (1000UL / LOOP_FREQUENCY);
     // Send CAN messages
+    Serial.println(timestamp);
     
+  } else {
+    Serial.println("Hello");
   }
 }
