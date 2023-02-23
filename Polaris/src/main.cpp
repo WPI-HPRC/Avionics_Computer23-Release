@@ -20,7 +20,6 @@ void loop() {
       currentRocketPacket.state = 10;
       currentRocketPacket.pressure = 29.92;
       currentRocketPacket.temperature = 5.0;
-      currentRocketPacket.acX = 200.0;
       telemBoard->setCurrentPacket(currentRocketPacket);
     }
 
