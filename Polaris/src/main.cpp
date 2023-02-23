@@ -10,7 +10,7 @@ void setup() {
   Serial.begin(115200);
 
   telemBoard->init();
-  telemBoard->setState(TX);
+  telemBoard->setState(RX);
 }
 
 void loop() {
@@ -18,15 +18,14 @@ void loop() {
     if(telemBoard->getState() == TX) {
       currentRocketPacket.timestamp = millis();
       currentRocketPacket.state = 10;
-      currentRocketPacket.altitude = 100.0;
       currentRocketPacket.pressure = 29.92;
       currentRocketPacket.temperature = 5.0;
-
+      currentRocketPacket.acX = 200.0;
       telemBoard->setCurrentPacket(currentRocketPacket);
     }
 
     telemBoard->onLoop();
 
-    delay(1000);
+    delay(100);
 
 } 

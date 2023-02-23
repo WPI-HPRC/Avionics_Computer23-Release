@@ -30,7 +30,7 @@ int TelemetryBoard::init() {
     // Configure EByte E32-900T20S
     transceiver->SetAddressH(0);
     transceiver->SetAddressL(0); // Broadcast and rx all
-    transceiver->SetChannel(20); // 58 - 920MHz for E32-900T20S
+    transceiver->SetChannel(58); // 58 - 920MHz for E32-900T20S
                                  // 20 - 920MHz for E32-915T20D
     
     transceiver->SetParityBit(0); // Parity bit -> 8N1
@@ -56,8 +56,15 @@ int TelemetryBoard::onLoop() {
             // Serial.println(transceiver->available());
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, packetSize);
+                // Serial.print("Packet Size: ");
+                // Serial.println(packetSize);
 
-                Serial.println(currentRocketPacket.altitude);
+                // Serial.print("Timestamp: ");
+                // Serial.println(currentRocketPacket.timestamp);
+                // Serial.print("Temperature: ");
+                // Serial.println(currentRocketPacket.temperature);
+                // Serial.print("Timestamp: " + currentRocketPacket.timestamp);
+                printPacketToGS();
             }
 
             break;
@@ -81,9 +88,6 @@ void TelemetryBoard::printPacketToGS() {
 
     uint8_t state = currentRocketPacket.state;
 
-    float altitude = currentRocketPacket.altitude;
-    uint8_t * altB = (uint8_t *) &altitude;
-
     float temperature = currentRocketPacket.temperature;
     uint8_t * tmpB = (uint8_t *) &temperature;
 
@@ -101,12 +105,6 @@ void TelemetryBoard::printPacketToGS() {
     Serial.print(STATE_IDENT);
     Serial.write(state);
 
-    Serial.print(ALTITUDE_IDENT);
-    Serial.write(altB[3]);
-    Serial.write(altB[2]);
-    Serial.write(altB[1]);
-    Serial.write(altB[0]);
-
     Serial.print(TEMPERATURE_IDENT);
     Serial.write(tmpB[3]);
     Serial.write(tmpB[2]);
@@ -120,7 +118,6 @@ void TelemetryBoard::printPacketToGS() {
     Serial.write(prsB[0]);
 
     Serial.print(PACKET_END);
-
 }
 
 //Getters
