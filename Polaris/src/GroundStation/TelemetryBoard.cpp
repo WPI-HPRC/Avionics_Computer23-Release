@@ -56,9 +56,15 @@ int TelemetryBoard::onLoop() {
             // Serial.println(transceiver->available());
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, packetSize);
-                printPacketToGS();
+                // Serial.print("Packet Size: ");
+                // Serial.println(packetSize);
 
+                // Serial.print("Timestamp: ");
                 // Serial.println(currentRocketPacket.timestamp);
+                // Serial.print("Temperature: ");
+                // Serial.println(currentRocketPacket.temperature);
+                // Serial.print("Timestamp: " + currentRocketPacket.timestamp);
+                printPacketToGS();
             }
 
             break;
@@ -88,16 +94,6 @@ void TelemetryBoard::printPacketToGS() {
     float pressure = currentRocketPacket.pressure;
     uint8_t * prsB = (uint8_t *) &pressure;
 
-    Serial.println(timestamp);
-    for(int i=0; i < sizeof(tspB); i++) {
-        Serial.print(tspB[i]);
-        if(i == sizeof(tspB) - 1) {
-            Serial.println("");
-        } else { 
-            Serial.print(", ");
-        }
-    }
-
     Serial.print(PACKET_BEG);
     
     Serial.print(TIMESTAMP_IDENT);
@@ -116,13 +112,12 @@ void TelemetryBoard::printPacketToGS() {
     Serial.write(tmpB[0]);
 
     Serial.print(PRESSURE_IDENT);
-    Serial.write(prsB[0]);
-    Serial.write(prsB[1]);
-    Serial.write(prsB[2]);
     Serial.write(prsB[3]);
+    Serial.write(prsB[2]);
+    Serial.write(prsB[1]);
+    Serial.write(prsB[0]);
 
     Serial.print(PACKET_END);
-
 }
 
 //Getters
@@ -136,5 +131,6 @@ void TelemetryBoard::setState(TelemBoardState state) {
 }
 
 void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
+    // this->currentRocketPacket = newPacket;
     memcpy(&currentRocketPacket, &newPacket, packetSize);
 }

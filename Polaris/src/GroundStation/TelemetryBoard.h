@@ -36,12 +36,6 @@ struct RocketPacket {
     uint32_t state;
     float pressure;
     float temperature;
-    float acX;
-    float acY;
-    float acZ;
-    float gyX;
-    float gyY;
-    float gyZ;
 };
 
 class TelemetryBoard {
