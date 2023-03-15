@@ -20,7 +20,7 @@
 #define STATE_IDENT "STT"
 #define ALTITUDE_IDENT "ALT"
 #define TEMPERATURE_IDENT "TMP"
-#define PRESSURE_IDENT "PRS"
+#define PRESSURE_IDENT "PRR"
 #define PACKET_END "ENDB"
 
 enum TelemBoardState {
@@ -63,7 +63,7 @@ private:
     constexpr static uint8_t PIN_AUX = 4;
     
     //Serial RX and TX are only used when not using teensy hw serial 1
-    constexpr static uint8_t PIN_RX = 5; 
+    constexpr static uint8_t PIN_RX = 5;
     constexpr static uint8_t PIN_TX = 6;
 
     TelemBoardState telemetryState = RX;
