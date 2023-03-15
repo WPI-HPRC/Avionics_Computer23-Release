@@ -56,14 +56,6 @@ int TelemetryBoard::onLoop() {
             // Serial.println(transceiver->available());
             if(transceiver->available()) {
                 transceiver->GetStruct(&currentRocketPacket, packetSize);
-                // Serial.print("Packet Size: ");
-                // Serial.println(packetSize);
-
-                // Serial.print("Timestamp: ");
-                // Serial.println(currentRocketPacket.timestamp);
-                // Serial.print("Temperature: ");
-                // Serial.println(currentRocketPacket.temperature);
-                // Serial.print("Timestamp: " + currentRocketPacket.timestamp);
                 printPacketToGS();
             }
 
