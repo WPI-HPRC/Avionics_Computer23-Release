@@ -73,28 +73,28 @@ class Sensorboard{
         frame.Pressure = barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]));
 
         // Magnetometer
-        frame.X_mag = MMC5983MA::processXAxis(Buffer[18],Buffer[19],Buffer[24]);
-        frame.Y_mag = MMC5983MA::processYAxis(Buffer[20],Buffer[21],Buffer[24]);
-        frame.Z_mag = MMC5983MA::processZAxis(Buffer[22],Buffer[23],Buffer[24]);
+        // frame.X_mag = MMC5983MA::processXAxis(Buffer[18],Buffer[19],Buffer[24]);
+        // frame.Y_mag = MMC5983MA::processYAxis(Buffer[20],Buffer[21],Buffer[24]);
+        // frame.Z_mag = MMC5983MA::processZAxis(Buffer[22],Buffer[23],Buffer[24]);
 
 
-        // Serial.print("\nFrame: ");
-        // Serial.print("X_accel: ");
-        // Serial.print(frame.X_accel);
-        // Serial.print(" Y_accel: ");
-        // Serial.print(frame.Y_accel);
-        // Serial.print(" Z_accel: ");
-        // Serial.print(frame.Z_accel);
-        // Serial.print(" X_gyro: ");
-        // Serial.print(frame.X_gyro);
-        // Serial.print(" Y_gyro: ");
-        // Serial.print(frame.Y_gyro);
-        // Serial.print(" Z_gyro: ");
-        // Serial.print(frame.Z_gyro);
-        // Serial.print(" Temperature: ");
-        // Serial.print(frame.Temperature);
-        // Serial.print(" Pressure: ");
-        // Serial.print(frame.Pressure);
+        Serial.print("\nFrame: ");
+        Serial.print("X_accel: ");
+        Serial.print(frame.X_accel);
+        Serial.print(" Y_accel: ");
+        Serial.print(frame.Y_accel);
+        Serial.print(" Z_accel: ");
+        Serial.print(frame.Z_accel);
+        Serial.print(" X_gyro: ");
+        Serial.print(frame.X_gyro);
+        Serial.print(" Y_gyro: ");
+        Serial.print(frame.Y_gyro);
+        Serial.print(" Z_gyro: ");
+        Serial.print(frame.Z_gyro);
+        Serial.print(" Temperature: ");
+        Serial.print(frame.Temperature);
+        Serial.print(" Pressure: ");
+        Serial.print(frame.Pressure);
     }
 
     /*

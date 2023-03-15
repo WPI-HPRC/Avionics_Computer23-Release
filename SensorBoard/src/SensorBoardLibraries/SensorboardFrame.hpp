@@ -7,9 +7,9 @@ struct SensorboardFrame
     float X_gyro; // Angular velocity in degrees/s
     float Y_gyro; // Angular velocity in degrees/s
     float Z_gyro; // Angular velocity in degrees/s
-    float X_mag; // Magnetic field in Gauss
-    float Y_mag; // Magnetic field in Gauss
-    float Z_mag; // Magnetic field in Gauss
+    float X_mag; //
+    float Y_mag; //
+    float Z_mag; // 
     float Pressure; // Pressure in mBar
     float Temperature; // Temperature in degrees Celsius
     float latitude; // Latitude in degrees
