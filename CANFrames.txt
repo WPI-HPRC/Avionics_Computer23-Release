@@ -1,42 +1,81 @@
 Sensorboard TX CAN Frame
 ID: 0x0001
 Length (bytes): 48
-Data:
 Byte: Data:
---------------------------------IMU Data--------------------------------
-0: ACCEL_DATA_X1
-1: ACCEL_DATA_X0
-2: ACCEL_DATA_Y1
-3: ACCEL_DATA_Y0
-4: ACCEL_DATA_Z1
-5: ACCEL_DATA_Z0
-6: GYRO_DATA_X1
-7: GYRO_DATA_X0
-8: GYRO_DATA_Y1
-9: GYRO_DATA_Y0
-10: GYRO_DATA_Z1
-11: GYRO_DATA_Z0
+---------------------------------Accelerometer Data-------------------------------
+*Little Endian Floats* Units: g's
+0: X Acceleration [7:0]
+1: X Acceleration [15:8]
+2: X Acceleration [23:16]
+3: X Acceleration [31:24]
+
+4: Y Acceleration [7:0]
+5: Y Acceleration [15:8]
+6: Y Acceleration [23:16]
+7: Y Acceleration [31:24]
+
+8: Z Acceleration [7:0]
+9: Z Acceleration [15:8]
+10: Z Acceleration [23:16]
+11: Z Acceleration [31:24]
+
+---------------------------------Gyroscope Data-------------------------------
+*Little Endian Floats* Units: degrees/s
+12: X Angular Velocity [7:0]
+13: X Angular Velocity [15:8]
+14: X Angular Velocity [23:16]
+15: X Angular Velocity [31:24]
+
+16: Y Angular Velocity [7:0]
+17: Y Angular Velocity [15:8]
+18: Y Angular Velocity [23:16]
+19: Y Angular Velocity [31:24]
+
+20: Z Angular Velocity [7:0]
+21: Z Angular Velocity [15:8]
+22: Z Angular Velocity [23:16]
+23: Z Angular Velocity [31:24]
+
+---------------------------------Magnetometer Data-------------------------------
+*Little Endian Floats* Units: gauss
+24: X Magnetic Field [7:0]
+25: X Magnetic Field [15:8]
+26: X Magnetic Field [23:16]
+27: X Magnetic Field [31:24]
+
+28: Y Magnetic Field [7:0]
+29: Y Magnetic Field [15:8]
+30: Y Magnetic Field [23:16]
+31: Y Magnetic Field [31:24]
+
+32: Z Magnetic Field [7:0]
+33: Z Magnetic Field [15:8]
+34: Z Magnetic Field [23:16]
+35: Z Magnetic Field [31:24]
+
 ---------------------------------Barometer Data-------------------------------
-12: BARO D1(Pressure) [23:16]
-13: BARO D1(Pressure) [15:8]
-14: BARO D1(Pressure) [7:0]
-15: BARO D2(Temperature) [23:16]
-16: BARO D2(Temperature) [15:8]
-17: BARO D2(Temperature) [7:0]
----------------------------------MAG Data--------------------------------
-18: MAG Xout0
-19: MAG Xout1
-20: MAG Yout0
-21: MAG Yout
-22: MAG Zout0
-23: MAG Zout1
-24: MAG XYZout2
+*Little Endian Floats* Units: millibars
+36: Pressure [7:0]
+37: Pressure [15:8]
+38: Pressure [23:16]
+39: Pressure [31:24]
+
+---------------------------------Temperature Data-------------------------------
+*Little Endian Floats* Units: degrees Celsius
+40: Temperature [7:0]
+41: Temperature [15:8]
+42: Temperature [23:16]
+43: Temperature [31:24]
+
 ---------------------------------Time Data-------------------------------
 Time is in milliseconds
-25: Time Data [31:24]
-26: Time Data [23:16]
-27: Time Data [15:8]
-28: Time Data [7:0]
+44: Time Data [7:0]
+45: Time Data [15:8]
+46: Time Data [23:16]
+47: Time Data [31:24]
+
+
+
 
 
 Control Board TX STATE CAN Frame

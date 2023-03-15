@@ -3,6 +3,7 @@
 #include <SensorBoardLibraries\Barometer\Barometer_SB.h>
 #include <ACAN2517FD.h>
 #include "Config.h"
+#include "SensorboardFrame.hpp"
 
 /*
     @author Samay Govani
@@ -15,6 +16,9 @@ class Sensorboard{
     ICM42688P imu = ICM42688P(Wire, IMU_I2C_ADDRESS); // IMU
     MMC5983MA mag = MMC5983MA(Wire, MAG_I2C_ADDRESS); // Magnetometer
     uint8_t Buffer[29] = {0};
+    SensorboardFrame frame;
+    bool newFrame = true;
+
     public:
     Sensorboard(){};
 
@@ -48,6 +52,44 @@ class Sensorboard{
         Buffer[26] = (uint8_t)((time >> 16) & 0xFFU);
         Buffer[27] = (uint8_t)((time >> 8) & 0xFFU);
         Buffer[28] = (uint8_t)(time & 0xFFU);
+        this->ProcessBuffer();
+    }
+
+    void ProcessBuffer(){
+        // Process the buffer and store the data in the frame, once the frame is updated set newFrame to true
+
+        // Accelerometer
+        frame.X_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
+        frame.Y_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
+        frame.Z_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
+
+
+        // Gyroscope
+        frame.X_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
+        frame.Y_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
+        frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
+
+        // Barometer
+        frame.Temperature = barometer.calculateTemperature(MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]));
+        frame.Pressure = barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]));
+
+        Serial.print("\nFrame: ");
+        Serial.print("X_accel: ");
+        Serial.print(frame.X_accel);
+        Serial.print(" Y_accel: ");
+        Serial.print(frame.Y_accel);
+        Serial.print(" Z_accel: ");
+        Serial.print(frame.Z_accel);
+        Serial.print(" X_gyro: ");
+        Serial.print(frame.X_gyro);
+        Serial.print(" Y_gyro: ");
+        Serial.print(frame.Y_gyro);
+        Serial.print(" Z_gyro: ");
+        Serial.print(frame.Z_gyro);
+        Serial.print(" Temperature: ");
+        Serial.print(frame.Temperature);
+        Serial.print(" Pressure: ");
+        Serial.print(frame.Pressure);
     }
 
     /*
