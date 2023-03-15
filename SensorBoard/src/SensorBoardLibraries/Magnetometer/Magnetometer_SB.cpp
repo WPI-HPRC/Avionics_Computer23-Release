@@ -100,3 +100,5 @@ void MMC5983MA::readSensor(uint8_t *Data, int StartIndex)
     Data += StartIndex; // Move pointer to start index
     readRegister(Xout0, 7, Data); // Read 6 bytes starting from Magnetic_X_MSB
 }
+
+

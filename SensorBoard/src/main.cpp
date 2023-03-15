@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include "SensorBoardLibraries/SensorBoard.hpp"
+#include "SensorBoardLibraries\SensorBoard.hpp"
 
 static const uint32_t LoopFrequency = 100UL; // 100 Hz
 
@@ -16,7 +16,9 @@ void setup() {
   if (!sensorboard.setup()) {
     Serial.println("Sensorboard setup failed");
   }
-  Serial.println("Sensorboard setup success");
+  else{
+    Serial.println("Sensorboard setup success");
+  }
 
   SPI.begin();
   // ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_20MHz, 500UL * 1000UL, DataBitRateFactor::x10);
@@ -66,3 +68,4 @@ if (millis() - prevTime >= interval){ // Timer
     // can.tryToSend(message); // Send CAN message
   }
 }
+

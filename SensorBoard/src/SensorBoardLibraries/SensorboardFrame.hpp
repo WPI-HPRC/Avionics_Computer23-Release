@@ -12,6 +12,8 @@ struct SensorboardFrame
     float Z_mag; // Magnetic field in Gauss
     float Pressure; // Pressure in mBar
     float Temperature; // Temperature in degrees Celsius
+    float latitude; // Latitude in degrees
+    float longitude; // Longitude in degrees
     uint32_t time; // Time in milliseconds since the start of the program
 };
 
