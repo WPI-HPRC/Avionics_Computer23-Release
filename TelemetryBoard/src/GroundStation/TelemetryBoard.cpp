@@ -1,62 +1,77 @@
-/**
- * @file TelemetryBoard.cpp
- * @author Ground Station
- * @brief Telemetry board transceiver code
- * @version 0.1
- * @date 2023-1-13
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #include "TelemetryBoard.h"
 
 TelemetryBoard::TelemetryBoard() {
-
 }
 
-int TelemetryBoard::initTelem() {
+int TelemetryBoard::init() {
+    ESerial->begin(9600);
 
-    // Serial1.begin(9600);
+    transceiver = new LoRaE32(ESerial, PIN_M0, PIN_M1, PIN_AUX);
 
-    transceiver->init(1);
+    if(!transceiver->init()) {
+        Serial.println("Error initializing telemetry!");
+        return -1;
+    }
 
+    // Configure EByte E32-900T20S
     transceiver->SetAddressH(0);
-	transceiver->SetAddressL(0);        
-    transceiver->SetChannel(58); // this is 920 mHz :)
-
-    transceiver->SetParityBit(0); //Speed bit
-    transceiver->SetUARTBaudRate(3); //9600 baud
-    transceiver->SetAirDataRate(4); // air data rate: 9.6K ;)
+    transceiver->SetAddressL(0); // Broadcast and rx all
+    transceiver->SetChannel(58); // 58 - 920MHz for E32-900T20S
+                                 // 20 - 920MHz for E32-915T20D
+    
+    transceiver->SetParityBit(0); // Parity bit -> 8N1
+    transceiver->SetUARTBaudRate(3); // 3 = 9600baud
+    transceiver->SetAirDataRate(4); // 3 = 4.8kbps, 4 = 9.6kbps
 
     transceiver->SetTransmissionMode(0);
     transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(1);
-    transceiver->SetTransmitPower(0);
+    transceiver->SetWORTIming(0);
+    transceiver->SetFECMode(1);
+    transceiver->SetTransmitPower(0); // Max Power
 
-    transceiver->SaveParameters(); // NOTIHNG WILL BE SAVED... UNLESS... SAVEPARAMETERS IS CALLED :(
+    transceiver->SaveParameters(PERMANENT);
     transceiver->PrintParameters();
-
-    Serial.println("Telemetry board intialized!");
 
     return 1;
 }
 
-void TelemetryBoard::setState(TelemBoardState state) {
-    this->telemetryState = state;
+int TelemetryBoard::onLoop() {
+
+    switch(telemetryState) {
+        case(RX): {
+            if(transceiver->available()) {
+                transceiver->GetStruct(&currentRocketPacket, packetSize);
+
+                Serial.print("Timestamp: "); Serial.println(currentRocketPacket.timestamp);
+                // printPacketToGS();
+            }
+
+            break;
+        }
+        case(TX): {
+            bool packetSuccess = transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
+            Serial.print("Packet: ");
+            Serial.println(currentRocketPacket.timestamp);
+            Serial.print("Success?: ");
+            Serial.println(packetSuccess);
+            break;
+        }
+    }
+
+    return 1;
 }
 
-void TelemetryBoard::printToGS() {
+void TelemetryBoard::printPacketToGS() {
     uint32_t timestamp = currentRocketPacket.timestamp;
     uint8_t * tspB = (uint8_t *) &timestamp;
 
     uint8_t state = currentRocketPacket.state;
 
-    float altitude = currentRocketPacket.altitude;
-    uint8_t * altB = (uint8_t *) &altitude;
-
     float temperature = currentRocketPacket.temperature;
     uint8_t * tmpB = (uint8_t *) &temperature;
+
+    float pressure = currentRocketPacket.pressure;
+    uint8_t * prsB = (uint8_t *) &pressure;
 
     Serial.print(PACKET_BEG);
     
@@ -69,80 +84,32 @@ void TelemetryBoard::printToGS() {
     Serial.print(STATE_IDENT);
     Serial.write(state);
 
-    Serial.print(ALTITUDE_IDENT);
-    Serial.write(altB[3]);
-    Serial.write(altB[2]);
-    Serial.write(altB[1]);
-    Serial.write(altB[0]);
-
     Serial.print(TEMPERATURE_IDENT);
     Serial.write(tmpB[3]);
     Serial.write(tmpB[2]);
     Serial.write(tmpB[1]);
     Serial.write(tmpB[0]);
 
+    Serial.print(PRESSURE_IDENT);
+    Serial.write(prsB[3]);
+    Serial.write(prsB[2]);
+    Serial.write(prsB[1]);
+    Serial.write(prsB[0]);
+
     Serial.print(PACKET_END);
 }
 
-void TelemetryBoard::onLoop() {
-    //Update packet
-
-    switch(telemetryState) {
-        case RX: {
-            if(transceiver->available()) {
-                transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-                printToGS();
-            }
-            break;
-
-        }
-        
-        case LOW_POWER: {
-            //Dummy Data
-            // currentRocketPacket.altitude = 10;
-            // currentRocketPacket.state = 0;
-            // currentRocketPacket.temperature = 0;
-            // currentRocketPacket.timestamp = millis();
-            transceiver->SetTransmitPower(3);
-            transceiver->SaveParameters();
-
-            Serial.println("TX: Low Power!");
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            break;
-        }
-
-        case HIGH_POWER: {
-            transceiver->SetTransmitPower(0);
-            transceiver->SaveParameters();
-
-            Serial.print("TSP: ");
-            Serial.println(this->currentRocketPacket.timestamp);
-            Serial.print("ALT: ");
-            Serial.println(this->currentRocketPacket.altitude);
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            break;
-        }
-    }
-};
-
+//Getters
 TelemBoardState TelemetryBoard::getState() {
-    return this->telemetryState;
+    return telemetryState;
 }
 
-void TelemetryBoard::setTelemState(uint8_t currentState) {
-    this->currentRocketPacket.state = currentState;
+//Setters
+void TelemetryBoard::setState(TelemBoardState state) {
+    this->telemetryState = state;
 }
 
-void TelemetryBoard::setTemperature(float currentTemperature)  {
-    this->currentRocketPacket.temperature = currentTemperature;
-}
-
-void TelemetryBoard::setTimestamp(uint32_t currentTimestamp) {
-    this->currentRocketPacket.timestamp = currentTimestamp;
-}
-
-void TelemetryBoard::setAltitude(float currentAltitude) {
-    this->currentRocketPacket.altitude = currentAltitude;
+void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
+    // this->currentRocketPacket = newPacket;
+    memcpy(&currentRocketPacket, &newPacket, packetSize);
 }

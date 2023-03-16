@@ -18,21 +18,26 @@ volatile uint32_t prevTime = 0;
 
 TelemetryBoard telemBoard = TelemetryBoard();
 
+RocketPacket newRocketPacket;
+
 void setup() {
   Serial.begin(115200);
 
-  telemBoard.initTelem();
-  telemBoard.setState(RX); //Default state
+  telemBoard.init();
+  telemBoard.setState(TX);
 
 }
 
 void loop() {
 
-  
-
-  if(millis() - prevTime >= loopFrequency) {
-    prevTime = millis();
-    telemBoard.onLoop();
+  if(telemBoard.getState() == TX) {
+      newRocketPacket.timestamp = millis();
+      newRocketPacket.state = 0;
+      newRocketPacket.temperature = 100.0;
+      newRocketPacket.pressure = 29.92;
   }
 
+  telemBoard.onLoop();
+
+  delay(100);
 }
