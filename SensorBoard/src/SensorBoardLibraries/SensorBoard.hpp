@@ -16,11 +16,10 @@ class Sensorboard{
     ICM42688P imu = ICM42688P(Wire, IMU_I2C_ADDRESS); // IMU
     MMC5983MA mag = MMC5983MA(Wire, MAG_I2C_ADDRESS); // Magnetometer
     uint8_t Buffer[29] = {0};
-    SensorboardFrame frame;
 
     public:
     Sensorboard(){};
-
+    SensorboardFrame frame;
     /*
         @brief Sets up all the sensors
         @details Returns true if all sensors are setup correctly
@@ -76,25 +75,14 @@ class Sensorboard{
         // frame.X_mag = MMC5983MA::processXAxis(Buffer[18],Buffer[19],Buffer[24]);
         // frame.Y_mag = MMC5983MA::processYAxis(Buffer[20],Buffer[21],Buffer[24]);
         // frame.Z_mag = MMC5983MA::processZAxis(Buffer[22],Buffer[23],Buffer[24]);
+        frame.X_mag = 0;
+        frame.Y_mag = 0;
+        frame.Z_mag = 0;
 
+        frame.time = millis();
 
-        Serial.print("\nFrame: ");
-        Serial.print("X_accel: ");
-        Serial.print(frame.X_accel);
-        Serial.print(" Y_accel: ");
-        Serial.print(frame.Y_accel);
-        Serial.print(" Z_accel: ");
-        Serial.print(frame.Z_accel);
-        Serial.print(" X_gyro: ");
-        Serial.print(frame.X_gyro);
-        Serial.print(" Y_gyro: ");
-        Serial.print(frame.Y_gyro);
-        Serial.print(" Z_gyro: ");
-        Serial.print(frame.Z_gyro);
-        Serial.print(" Temperature: ");
-        Serial.print(frame.Temperature);
-        Serial.print(" Pressure: ");
-        Serial.print(frame.Pressure);
+        frame.latitude = 0;
+        frame.longitude = 0;
     }
 
     /*

@@ -11,19 +11,19 @@
 /*
 Calibration Data 
 */
-#define A11 .1249
-#define A12 .-.0059
-#define A13 .-.0002
-#define A21 .-.0059
-#define A22 .1252
-#define A23 .-.0017
-#define A31 .-.0002
-#define A32 . .0017
-#define A33 .1343
+// #define A11 .1249
+// #define A12 .-.0059
+// #define A13 .-.0002
+// #define A21 .-.0059
+// #define A22 .1252
+// #define A23 .-.0017
+// #define A31 .-.0002
+// #define A32 . .0017
+// #define A33 .1343
 
-#define B1 128670
-#define B2 130090
-#define B3 131600
+// #define B1 128670
+// #define B2 130090
+// #define B3 131600
 
 
 class MMC5983MA : public Sensor{
