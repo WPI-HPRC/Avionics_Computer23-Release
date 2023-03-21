@@ -1,73 +1,76 @@
 /**
  * @file TelemetryBoard.h
  * @author Ground Station
- * @brief Telemetry board transceiver header
- * @version 0.1
- * @date 2023-1-13
- * 
- * @copyright Copyright (c) 2022
+ * @brief Telemetry board transceiver code
+ * @version V2
+ * @date 2023-2-5
+ * @copyright Copyright (c) 2023
  * 
  */
 
 #pragma once
 
-#include "Arduino.h"
-#include "LoRaE32.h"
-
+#include <Arduino.h>
 #include <SoftwareSerial.h>
+
+#include "LoRaE32.h"
 
 #define PACKET_BEG "BEGB"
 #define TIMESTAMP_IDENT "TSP"
 #define STATE_IDENT "STT"
 #define ALTITUDE_IDENT "ALT"
 #define TEMPERATURE_IDENT "TMP"
+#define PRESSURE_IDENT "PRR"
 #define PACKET_END "ENDB"
 
 enum TelemBoardState {
-    RX, LOW_POWER, HIGH_POWER
+    RX, TX
+};
+
+enum BoardType {
+    teensy, atmega
+};
+
+struct RocketPacket {
+    uint32_t timestamp;
+    uint32_t state;
+    float pressure;
+    float temperature;
 };
 
 class TelemetryBoard {
-
 public:
-    TelemetryBoard();
+    TelemetryBoard(); //Constructor
 
-    void setState(TelemBoardState state);
-    void printToGS();
-    int initTelem();
-    void onLoop();
+    int init(); // Initalize transmitter
+
+    void printPacketToGS(); //prints Current packet to ground station
+
+    int onLoop(); // Run once per loop cycle
+
+    //Getters
     TelemBoardState getState();
 
-    void setTimestamp(uint32_t currentTimestamp);
-    void setTelemState(uint8_t currentState);
-    void setAltitude(float currrentAltitude);
-    void setTemperature(float currentTemperature);
+    //Setters
+    void setState(TelemBoardState state); //State switcher
+    
+        //Telemetry
+    void setCurrentPacket(RocketPacket newPacket);
 
 private:
-    constexpr static uint8_t PIN_M0  = 2;
-	constexpr static uint8_t PIN_M1  = 3;
-	constexpr static uint8_t PIN_AUX = 4;
-	constexpr static uint8_t DATA_SIZE = 32; // Bytes
-    constexpr static byte rxPin = 4;
-    constexpr static byte txPin = 5;
-
-    struct RocketPacket {
-        uint32_t timestamp;
-        uint8_t state;
-        float altitude;
-        float temperature;
-    };
+    constexpr static uint8_t PIN_M0 = 2;
+    constexpr static uint8_t PIN_M1 = 3;
+    constexpr static uint8_t PIN_AUX = A3;
+    
+    //Serial RX and TX are only used when not using teensy hw serial 1
+    constexpr static uint8_t PIN_RX = 4;
+    constexpr static uint8_t PIN_TX = A2;
 
     TelemBoardState telemetryState = RX;
 
-    uint8_t currentPacket[DATA_SIZE];
     RocketPacket currentRocketPacket;
-    SoftwareSerial ESerial = SoftwareSerial(rxPin, txPin);
+    uint8_t packetSize = sizeof(currentRocketPacket);
 
-    LoRaE32 * transceiver = new LoRaE32(&ESerial, PIN_M0, PIN_M1, PIN_AUX);
-
-    // LoRaE32 * transceiver = new LoRaE32(&Serial1, PIN_M0, PIN_M1, PIN_AUX);
-
-    // LoRaE32 * transceiver = new LoRaE32(&LoRaSerial, PIN_M0, PIN_M1, PIN_AUX);
-    
+    LoRaE32 * transceiver;
+    SoftwareSerial * ESerial = new SoftwareSerial(PIN_RX, PIN_TX);
 };

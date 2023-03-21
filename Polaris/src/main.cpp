@@ -1,80 +1,33 @@
 #include <Arduino.h>
 
 #include <GroundStation/TelemetryBoard.h>
+#include <lib/MyMetroTimer.h>
 
-//Peripherals
-#include <Peripherials/MS5611.h>
-#include <Peripherials/ICM42688.h>
+#define CONVERSION 1000
+#define LOOP_FREQUENCY 20
 
-TelemetryBoard * telemBoard = new TelemetryBoard(teensy);
+MyMetro timer = MyMetro(CONVERSION / LOOP_FREQUENCY);
 
-RocketPacket currentRocketPacket;
+int counter = 0;
+uint32_t timestamp;
 
-MS5611 * barometer = new MS5611(0x77);
-ICM42688 * imu = new ICM42688(Wire, 0x68);
+TelemetryBoard telemBoard = TelemetryBoard();
 
 void setup() {
   Serial.begin(115200);
 
-  telemBoard->init();
-  telemBoard->setState(RX);
-
-  //Initialize Sensors
-  if(barometer->begin()) {
-    Serial.println("Successfully initialized barometer!");
-  } else {
-    Serial.println("Barometer Not Initialized!");
-  }
-  if(imu->begin() < 0) {
-    Serial.println("IMU Not Initialized");
-  }
-
-  //Configure Barometer
-  barometer->setOversampling(OSR_ULTRA_LOW);
-
-  //Configure IMU
-  imu->setAccelFS(ICM42688::gpm8); // Range: +/- 8G
-  imu->setGyroFS(ICM42688::dps500); // Range: +/- 500 deg/s
-
-  imu->setAccelODR(ICM42688::odr100); // Output Rate: 100Hz
-  imu->setGyroODR(ICM42688::odr100); // Output Rate: 100Hz
-
+  telemBoard.setState(RX);
+  telemBoard.init();
 }
 
 void loop() {
+    if(timer.check() == 1) {
+        counter++;
 
-    if(telemBoard->getState() == TX) {
-      //Read Sensor Data
-      barometer->read();
-      imu->getAGT();
+        timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
 
-      float acX = imu->accX();
-      float acY = imu->accY();
-      float acZ = imu->accZ();
+        telemBoard.onLoop(timestamp);
+        timer.reset();
 
-      float gyX = imu->gyrX();
-      float gyY = imu->gyrY();
-      float gyZ = imu->gyrZ();
-
-      float newTemperature = barometer->getTemperature(); // deg C
-      float newPressure = barometer->getPressure(); // hPa or mbar
-
-
-      currentRocketPacket.timestamp = millis();
-      currentRocketPacket.pressure = newPressure;
-      currentRocketPacket.temperature = newTemperature;
-      currentRocketPacket.acX = acX;
-      currentRocketPacket.acY = acY;
-      currentRocketPacket.acZ = acZ;
-      currentRocketPacket.gyX = gyX;
-      currentRocketPacket.gyY = gyY;
-      currentRocketPacket.gyZ = gyZ;
-
-      telemBoard->setCurrentPacket(currentRocketPacket);
     }
-
-    telemBoard->onLoop();
-
-    delay(100);
-
-}
+} 
