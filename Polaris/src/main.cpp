@@ -1,30 +1,33 @@
 #include <Arduino.h>
 
 #include <GroundStation/TelemetryBoard.h>
+#include <lib/MyMetroTimer.h>
 
-TelemetryBoard * telemBoard = new TelemetryBoard(teensy);
+#define CONVERSION 1000
+#define LOOP_FREQUENCY 20
 
-RocketPacket currentRocketPacket;
+MyMetro timer = MyMetro(CONVERSION / LOOP_FREQUENCY);
+
+int counter = 0;
+uint32_t timestamp;
+
+TelemetryBoard telemBoard = TelemetryBoard();
 
 void setup() {
   Serial.begin(115200);
 
-  telemBoard->init();
-  telemBoard->setState(RX);
+  telemBoard.setState(RX);
+  telemBoard.init();
 }
 
 void loop() {
+    if(timer.check() == 1) {
+        counter++;
 
-    if(telemBoard->getState() == TX) {
-      currentRocketPacket.timestamp = millis();
-      currentRocketPacket.state = 10;
-      currentRocketPacket.pressure = 29.92;
-      currentRocketPacket.temperature = 5.0;
-      telemBoard->setCurrentPacket(currentRocketPacket);
+        timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
+
+        telemBoard.onLoop(timestamp);
+        timer.reset();
+
     }
-
-    telemBoard->onLoop();
-
-    delay(100);
-
 } 
