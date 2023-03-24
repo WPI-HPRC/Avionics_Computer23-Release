@@ -26,9 +26,9 @@ struct TelemetryPacket {
     uint32_t timestamp;
     uint8_t state;
     float pressure;
-    float temperature;
+    int8_t temperature;
     uint8_t vBatt;
-    uint8_t abPct
+    uint8_t abPct;
     int16_t acX;
     int16_t acY;
     int16_t acZ;
