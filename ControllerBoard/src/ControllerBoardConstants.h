@@ -8,4 +8,5 @@ const int CONVERSION = 1000;
 const int LOOP_FREQUENCY = HZ_100;
 
 const int MOTOR_BURNOUT_INTERVAL = 0;
-const int PRELAUNCH_INTERVAL = 1000;
+const int PRELAUNCH_INTERVAL = 1000; // 1 second
+const int BOOST_MIN_LENGTH = 3000; // 3 seconds

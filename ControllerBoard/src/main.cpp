@@ -13,8 +13,9 @@ Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 float timestamp;
 
-Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); 
+Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);
 Metro burnoutTimer = Metro(MOTOR_BURNOUT_INTERVAL); // 1 second timer after motor burnout detected
+Metro boostTimer = Metro(BOOST_MIN_LENGTH);
 boolean burnoutDetected = false;
 
 int16_t transitionBuf[10];
@@ -31,30 +32,19 @@ enum AvionicsState
     STARTUP,
     PRELAUNCH,
     BOOST,
+    COAST_CONTINGENCY,
     COAST,
-    DESCENT,
+    DROGUE_DEPLOY,
+    DROGUE_CONTINGENCY,
+    DROGUE_DESCENT,
+    MAIN_CONTINGENCY,
+    MAIN_DEPLOY,
+    MAIN_DESCENT,
     POSTFLIGHT,
     ABORT
 };
 
 AvionicsState avionicsState = ABORT;
-
-enum AirbrakesState
-{
-    SWEEP0,
-    SWEEP1,
-    SWEEP2,
-    SWEEP3,
-    SWEEP4,
-    SWEEP5,
-	SWEEP6,
-    SWEEP7,
-    SWEEP8,
-    SWEEP9,
-    STOP
-};
-
-AirbrakesState airbrakesState = SWEEP0;
 
 // checks whether the state has timed out yet
 bool timeout(uint16_t length)
@@ -77,72 +67,93 @@ bool timeout(uint16_t length)
 
 // uses updated accel value to determine if the rocket has launched
 // stores 10 most recent values and computes current avg
-boolean launchDetect() {
+boolean launchDetect()
+{
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
     transitionBuf[transitionBufInd] = accelMag;
     // take running average value
     float sum = 0.0;
-    for (int i=0; i<10; i++) {
-      sum += transitionBuf[i];
+    for (int i = 0; i < 10; i++)
+    {
+        sum += transitionBuf[i];
     }
     sum = sum / 10.0;
     transitionBufInd = (transitionBufInd + 1) % 10;
     // compare running average value to defined threshold
-    if (sum > ACCEL_THRESHOLD) {
-      for (int j=0; j<10; j++) { transitionBuf[j] = 0; }
-      transitionBufInd = 0;
-	  Serial.println("Launch detected!");
-      return true;
+    if (sum > ACCEL_THRESHOLD)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            transitionBuf[j] = 0;
+        }
+        transitionBufInd = 0;
+        Serial.println("Launch detected!");
+        return true;
     }
     return false;
 }
 
 // detects if motor burnout has occurred (aka negative accel)
 // tracks 10 most recent accels and computes current average
-boolean motorBurnoutDetect() {
-  // accel value gets updated in sensor reading fcn
+boolean motorBurnoutDetect()
+{
+    // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
     transitionBuf[transitionBufInd] = accelMag;
     // take running average value
     float sum = 0.0;
-    for (int i=0; i<10; i++) {
-      sum += transitionBuf[i];
+    for (int i = 0; i < 10; i++)
+    {
+        sum += transitionBuf[i];
     }
     sum = sum / 10.0;
 
     transitionBufInd = (transitionBufInd + 1) % 10;
     // compare running average value to defined threshold
-    if (sum < 0) {
-      for (int j=0; j<10; j++) { transitionBuf[j] = 0; }
-      transitionBufInd = 0;
-	  Serial.println("Motor burnout detected!");
-      return true;
+    if (sum < 0)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            transitionBuf[j] = 0;
+        }
+        transitionBufInd = 0;
+        Serial.println("Motor burnout detected!");
+        return true;
     }
     return false;
 }
 
-boolean apogeeDetect() {
-  // if descending, case = DESCENT
-  // Decreasing altitude
-  // add to cyclic buffer
-  transitionBuf[transitionBufInd] = accelMag;
-  // not going to be running avg, so this needs to be changed
-  float sum = 0.0;
-  for (int i=0; i<10; i++) {
-    sum += transitionBuf[i];
-  }
-  sum = sum / 10.0;
-  transitionBufInd = (transitionBufInd + 1) % 10;
-//   if (sum < 0) {
-//	   Serial.println("Apogee detected!");
-//     return true;
-//   }
-  return false;
+boolean apogeeDetect()
+{
+    // if descending, case = DESCENT
+    // Decreasing altitude
+    // add to cyclic buffer
+    transitionBuf[transitionBufInd] = accelMag;
+    // not going to be running avg, so this needs to be changed
+    float sum = 0.0;
+    for (int i = 0; i < 10; i++)
+    {
+        sum += transitionBuf[i];
+    }
+    sum = sum / 10.0;
+    transitionBufInd = (transitionBufInd + 1) % 10;
+    //   if (sum < 0) {
+    //	   Serial.println("Apogee detected!");
+    //     return true;
+    //   }
+    return false;
 }
 
-boolean landingDetect() {
-	return false; // TODO: WRITE SOMETHING HERE FOR REAL
+boolean landingDetect()
+{
+    return false; // TODO: WRITE SOMETHING HERE FOR REAL
+}
+
+void readSensors()
+{
+    // TODO: Populate these from Sensor Board
+    accelMag = 0;
 }
 
 void setup()
@@ -198,61 +209,78 @@ void loop()
         // update function call, receives CAN messages
         // updateSensorData();
 
+        // TODO write ABORT state switches
         switch (avionicsState)
         {
 
         case STARTUP:
-			if (prelaunchTimer.check() == 1) {
-				avionicsState = PRELAUNCH;
-				state_start = millis();
-			}
-			
-			break;
+            if (prelaunchTimer.check() == 1) // 1 second timeout
+            {
+                avionicsState = PRELAUNCH;
+                state_start = millis();
+            }
+
+            break;
         case PRELAUNCH:
 
             // if accel high enough, case = BOOST
-            if (millis() - state_start > 3000 && launchDetect())
+            if (launchDetect())
             {
                 avionicsState = BOOST;
+                boostTimer.reset();
                 state_start = millis();
             }
             break;
         case BOOST:
-            // current est = 5.5 sec
-            if (timeout(5000))
-            { // Will this timeout hold us in the state? Need to globalize this timeout somehow
-				Serial.println("Boost phase timeout triggered!");
-				state_start = millis();
-                avionicsState = COAST;
+            // Stay in this state for at least 3 seconds to prevent airbrake activation
+            if (boostTimer.check() == 1)
+            {
+                if (motorBurnoutDetect() && !burnoutDetected)
+                {
+                    burnoutDetected = true;
+                    burnoutTimer.reset();
+                }
+
+                if (burnoutDetected)
+                {
+                    // airbrakeServo.enable;  // Add this back in when using the stack
+                    state_start = millis();
+                    avionicsState = COAST;
+                    // airbrakesTimer.reset();
+                    break;
+                }
+            }
+            // Coast Contingency 8 second timeout
+            if (timeout(8000))
+            {
+                Serial.println("Boost phase timeout triggered!");
+                state_start = millis();
+                avionicsState = COAST_CONTINGENCY;
                 break;
             }
+            break;
+        case COAST_CONTINGENCY:
+            // TODO Check if Coast appears normal, then move into COAST phase
+            // state_start = millis();
+            // avionicsState = COAST;
+            // break;
 
-            // Keep airbrakes closed
-
-            // if decel occurs, case = COAST
-            // Check if acceleration is around a threshold of 0
-            // How accurate is the Kalman filter?
-
-            if (motorBurnoutDetect() && !burnoutDetected) {
-                burnoutDetected = true;
-                burnoutTimer.reset();
+            // TODO Determine timeout length
+            if (timeout(10000))
+            {
+                Serial.println("Coast Contingency phase timeout triggered!");
+                state_start = millis();
+                avionicsState = DROGUE_CONTINGENCY;
+                break;
             }
-
-            if (burnoutDetected && burnoutTimer.check() == 1) {
-                // airbrakeServo.enable;  // Add this back in when using the stack
-				state_start = millis();
-                avionicsState = COAST;
-                // airbrakesTimer.reset();
-            }
-
             break;
         case COAST:
-            // current est = 20 sec
-            if (timeout(15000))
+            // Wait 30 seconds before moving into DROGUE_DEPLOY state
+            if (timeout(30000))
             {
-				Serial.println("Coast phase timeout triggered!");
-				state_start = millis();
-                avionicsState = DESCENT;
+                Serial.println("Coast phase timeout triggered!");
+                state_start = millis();
+                avionicsState = DROGUE_DEPLOY;
                 break;
             }
 
@@ -265,31 +293,74 @@ void loop()
             // Velocity 0?
             // Decreasing altitude
 
-            if (apogeeDetect()) {
+            if (apogeeDetect())
+            {
                 // airbrakeServo.setPosition(0); // Need to do this upon state transition
                 // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
                 // airbrakeServo.disable;  // Add this back in upon state transition when using the stack
-				state_start = millis();
-                avionicsState = DESCENT;
+                state_start = millis();
+                avionicsState = DROGUE_DEPLOY;
             }
 
             break;
-        case DESCENT:
-            // current est = 100 (drogue) + 90 (main)
-            if (timeout(90000))
+        case DROGUE_DEPLOY:
+
+            break;
+        case DROGUE_CONTINGENCY:
+            // TODO Check for expected drogue descent rate, then move into DROGUE_DESCENT state
+            // state_start = millis();
+            // avionicsState = DROGUE_DESCENT;
+            // break;
+
+            // TODO Determine timeout length
+            if (timeout(10000))
             {
-				Serial.println("Descent phase timeout triggered!");
+                Serial.println("Drogue Contingency phase timeout triggered!");
+                state_start = millis();
+                avionicsState = MAIN_CONTINGENCY;
+                break;
+            }
+            break;
+        case DROGUE_DESCENT:
+            if (timeout(100000))
+            {
+                Serial.println("Drogue Descent phase timeout triggered!");
+                avionicsState = MAIN_DEPLOY;
+                break;
+            }
+            break;
+        case MAIN_DEPLOY:
+
+            break;
+        case MAIN_CONTINGENCY:
+            // TODO Check for expected main descent rate, then move into MAIN_DESCENT state
+            // state_start = millis();
+            // avionicsState = MAIN_DESCENT;
+            // break;
+
+            // TODO Determine timeout length
+            if (timeout(10000))
+            {
+                Serial.println("Main Contingency phase timeout triggered!");
+                state_start = millis();
                 avionicsState = POSTFLIGHT;
                 break;
             }
-            // datalog
+            break;
+        case MAIN_DESCENT:
+            if (timeout(90000))
+            {
+                Serial.println("Main Descent phase timeout triggered!");
+                avionicsState = POSTFLIGHT;
+                break;
+            }
 
             // if accel jumps aka landing, case = POSTFLIGHT
             // What is accel jump? What value are we expecting?
-            if (landingDetect()) {
-              avionicsState = POSTFLIGHT;
+            if (landingDetect())
+            {
+                avionicsState = POSTFLIGHT;
             }
-
             break;
         case POSTFLIGHT:
             // datalog
@@ -306,6 +377,7 @@ void loop()
             break;
         }
 
+        // May pull these into every state
         // Read all
         // readSensors();
 
@@ -316,15 +388,14 @@ void loop()
         // sendTelemetry();
 
         counter++;
-        timestamp = counter * (CONVERSION / LOOP_FREQUENCY); // CHANGE THIS TO RECORD SYSTEM TIME
+        timestamp = counter * (CONVERSION / LOOP_FREQUENCY); // TODO CHANGE THIS TO RECORD SYSTEM TIME
         timer.reset();
 
         // if (counter % 25 == 0) {
-		// 	Serial.print("Current state: ");
-		// 	Serial.print(avionicsState);
-		// 	Serial.print("	Accel val: ");
-		// 	Serial.println(accelMag);
-		// }
-
+        // 	Serial.print("Current state: ");
+        // 	Serial.print(avionicsState);
+        // 	Serial.print("	Accel val: ");
+        // 	Serial.println(accelMag);
+        // }
     }
 }
