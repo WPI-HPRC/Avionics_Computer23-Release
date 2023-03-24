@@ -150,6 +150,32 @@ boolean landingDetect()
     return false; // TODO: WRITE SOMETHING HERE FOR REAL
 }
 
+void retrieveCAN() {
+    // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
+
+    // Unpack data frame from sensor board
+
+    // Unpack GPS frame from sensor board
+
+    // Unpack battery voltage from power board
+
+    // Construct data packet
+    constructPacket();
+}
+
+void constructPacket() {
+    // TODO: Construct data packet from stored variables
+}
+
+void logData() {
+    // TODO: Write data packet to flash chip
+}
+
+void sendCAN() {
+    // TODO: Send CAN frame with data packet
+    // TODO: Send CAN frame with airbrakes actuation level
+}
+
 void readSensors()
 {
     // TODO: Populate these from Sensor Board
@@ -363,7 +389,7 @@ void loop()
             }
             break;
         case POSTFLIGHT:
-            // datalog
+            // datalog slow
 
             break;
         case ABORT:
@@ -378,14 +404,11 @@ void loop()
         }
 
         // May pull these into every state
-        // Read all
-        // readSensors();
+        // Receive inbound CAN frames
+        retrieveCAN();
 
-        // Record sensor data to onboard flash chip
-        // logData();
-
-        // Transmit data to ground station
-        // sendTelemetry();
+        // Send outbound CAN frames
+        sendCAN();
 
         counter++;
         timestamp = counter * (CONVERSION / LOOP_FREQUENCY); // TODO CHANGE THIS TO RECORD SYSTEM TIME
