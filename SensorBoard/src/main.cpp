@@ -1,5 +1,5 @@
 // #include <Wire.h>
-// #include "SensorBoardLibraries\SensorBoard.hpp"
+#include "SensorBoardLibraries\SensorBoard.hpp"
 
 // static const uint32_t LoopFrequency = 1UL; // 1 Hz
 
@@ -93,6 +93,7 @@
 
 #include <ACAN2517FD.h>
 #include <SPI.h>
+#include <Wire.h>
 
 //——————————————————————————————————————————————————————————————————————————————
 // Very very important: put a 10kΩ resistor between CS and VDD of MCP2517FD
@@ -106,6 +107,8 @@ static const byte MCP2517_INT =  2 ; // INT output of MCP2517
 
 ACAN2517FD can (MCP2517_CS, SPI, MCP2517_INT) ;
 
+Sensorboard sensorboard;
+
 //——————————————————————————————————————————————————————————————————————————————
 //   SETUP
 //——————————————————————————————————————————————————————————————————————————————
@@ -116,6 +119,14 @@ void setup () {
 //--- Wait for serial (blink led at 10 Hz during waiting)
   while (!Serial) {
     delay (50) ;
+  }
+  Wire.begin();
+  Wire.setClock(400000);
+  if (!sensorboard.setup()) {
+    Serial.println("Sensorboard setup failed");
+  }
+  else{
+    Serial.println("Sensorboard setup success");
   }
 //----------------------------------- Begin SPI
   SPI.begin () ;

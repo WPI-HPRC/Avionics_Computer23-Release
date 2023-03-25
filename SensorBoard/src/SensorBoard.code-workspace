@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "SensorBoard",
+			"path": ".."
+		},
+		{
+			"name": "ControllerBoard",
+			"path": "../../ControllerBoard"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"system_error": "cpp"
+		}
+	}
+}
