@@ -9,26 +9,48 @@ static const byte MCP2518FD_INT = 2;
 
 ACAN2517FD can(MCP2518FD_CS, SPI, MCP2518FD_INT);
 
+// Main timer declarations
 Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
-float timestamp;
+unsigned long state_start;
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);   // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro burnoutTimer = Metro(MOTOR_BURNOUT_INTERVAL); // 1 second timer after motor burnout detected
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);         // 3 second timer to ensure BOOST state is locked before possibility of state change
 
+// must be set to millis() when entering a new state
+unsigned long state_start;
+
+// Declarations for state transition detection buffer
 int16_t transitionBuf[10];
 uint8_t transitionBufInd = 0;
 
-boolean secondSweep = false;
+// Declaration of data packet array
+uint8_t DataPacket[24] = {0};
 
-int16_t accelMag;
-int16_t pitch;
-int16_t roll;
-int16_t altitude;
+// Variable declarations for raw sensor data
+uint32_t timestamp;
+float pressure;
+int8_t temperature;
+uint8_t vBatt;
+int16_t acX;
+int16_t acY;
+int16_t acZ;
+int16_t gyX;
+int16_t gyY;
+int16_t gyZ;
+int16_t magX;
+int16_t magY;
+int16_t magZ;
 
-// must be set to millis() when entering a new state
-unsigned long state_start;
+// Variable declarations for filtered state data
+int16_t posX;
+int16_t posY;
+int16_t posZ;
+int16_t velX;
+int16_t velY;
+int16_t velZ;
+uint8_t abPct;
 
 enum AvionicsState
 {
@@ -47,7 +69,7 @@ enum AvionicsState
     ABORT
 };
 
-AvionicsState avionicsState = ABORT;
+AvionicsState avionicsState = STARTUP;
 
 // checks whether the state has timed out yet
 bool timeout(uint16_t length)
@@ -63,18 +85,13 @@ bool timeout(uint16_t length)
     }
 }
 
-// bool updateSensorData() {
-//   // process sensor data when it comes in over CAN, put in data fields
-//   // Read CAN messages
-// }
-
 // uses updated accel value to determine if the rocket has launched
 // stores 10 most recent values and computes current avg
 boolean launchDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = accelMag;
+    transitionBuf[transitionBufInd] = acZ;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -103,7 +120,7 @@ boolean motorBurnoutDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = accelMag;
+    transitionBuf[transitionBufInd] = acZ;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -132,7 +149,7 @@ boolean apogeeDetect()
     // if descending, case = DESCENT
     // Decreasing altitude
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = accelMag;
+    transitionBuf[transitionBufInd] = acZ;
     // not going to be running avg, so this needs to be changed
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -156,20 +173,92 @@ boolean landingDetect()
 void retrieveCAN()
 {
     // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
+    CANFDMessage message;
 
     // Unpack data frame from sensor board
+    // TODO: Add needed conversions or scaling to this function
+    if (message.id == CAN_ID_SENSOR_DATA) {    
 
+        acX = bufferToInt16(message.data[0], message.data[1]);
+        acY = bufferToInt16(message.data[2], message.data[3]);
+        acZ = bufferToInt16(message.data[4], message.data[5]);
+        gyX = bufferToInt16(message.data[6], message.data[7]);
+        gyY = bufferToInt16(message.data[8], message.data[9]);
+        gyZ = bufferToInt16(message.data[10], message.data[11]);
+        // TODO: Barometer. This is 6 bytes ([12] - [17]) but idk what this data actually is. Need temperature and pressure.
+        magX = bufferToInt16(message.data[18], message.data[19]);
+        magY = bufferToInt16(message.data[20], message.data[21]);
+        magZ = bufferToInt16(message.data[22], message.data[23]);
+        timestamp = bufferToUint32(message.data[25], message.data[26], message.data[27], message.data[28]);
+    } 
+    
     // Unpack GPS frame from sensor board
+    else if (message.id == CAN_ID_GPS) {
+        // TODO: Figure out how to unpack GPS data. This has not been implemented on the transmitting side yet in the sensor board project.
+    }  
 
     // Unpack battery voltage from power board
+    else if (message.id == CAN_ID_VBATT) {
+        vBatt = message.data[0];
+    }
 
     // Construct data packet
     constructPacket();
 }
 
-void constructPacket()
-{
-    // TODO: Construct data packet from stored variables
+int16_t bufferToInt16(uint8_t upper, uint8_t lower) {
+    return lower | upper << 8;
+}
+
+uint32_t bufferToUint32(uint8_t data3, uint8_t data2, uint8_t data1, uint8_t data0) {
+    return data0 | data1 << 8 | data2 << 16 | data3 << 24;
+}
+
+// Construct the data packet
+void constructPacket() {
+
+    // TODO: When state estiation is completed, need to update this to include velocity, orientation, etc.
+
+    // Timestamp
+    DataPacket[0] = (uint8_t) ((timestamp >> 24) & 0xFFU);
+    DataPacket[1] = (uint8_t) ((timestamp >> 16) & 0xFFU);
+    DataPacket[2] = (uint8_t) ((timestamp >> 8) & 0xFFU);
+    DataPacket[3] = (uint8_t) (timestamp & 0xFFU);
+
+    // State
+    DataPacket[4] = (uint8_t) avionicsState;
+
+    // Altitude 
+    // TODO: Actually create an altitude variable and then update this. Currently have pressure but need to calculate altitude.
+    DataPacket[5] = 0;
+    DataPacket[6] = 0;
+    DataPacket[7] = 0;
+    DataPacket[8] = 0;
+
+    // Temperature
+    DataPacket[9] = temperature;
+
+    // Battery voltage
+    DataPacket[10] = vBatt;
+
+    // Airbrake actuation percent
+    DataPacket[11] = abPct;
+
+    // Acceleration (XYZ)
+    DataPacket[12] = (uint8_t) ((acX >> 8) & 0xFFU);
+    DataPacket[13] = (uint8_t) (acX & 0xFFU);
+    DataPacket[14] = (uint8_t) ((acY >> 8) & 0xFFU);
+    DataPacket[15] = (uint8_t) (acY & 0xFFU);
+    DataPacket[16] = (uint8_t) ((acZ >> 8) & 0xFFU);
+    DataPacket[17] = (uint8_t) (acZ & 0xFFU);
+
+    // Angular rate (XYZ)
+    DataPacket[18] = (uint8_t) ((acX >> 8) & 0xFFU);
+    DataPacket[19] = (uint8_t) (acX & 0xFFU);
+    DataPacket[20] = (uint8_t) ((acY >> 8) & 0xFFU);
+    DataPacket[21] = (uint8_t) (acY & 0xFFU);
+    DataPacket[22] = (uint8_t) ((acZ >> 8) & 0xFFU);
+    DataPacket[23] = (uint8_t) (acZ & 0xFFU);
 }
 
 void logData()
@@ -177,19 +266,24 @@ void logData()
     // TODO: Write data packet to flash chip
 }
 
-void sendCAN()
-{
-    // TODO: Send CAN frame with data packet
-    // TODO: Send CAN frame with airbrakes actuation level
+void doAirbrakeControls(uint16_t velVert, uint16_t velLat, float alt) {
+    // TODO: Implement control algorithm here to compute airbrake actuation value from inputs.
+    abPct = 0;
 }
 
-void readSensors()
-{
-    // TODO: Populate these from Sensor Board
-    accelMag = 0;
-    pitch = 0;
-    roll = 0;
-    altitude = 0;
+// Send CAN frame with data packet
+void sendCAN() {
+    CANFDMessage message;
+    message.id == CAN_ID_DATA_PACKET;
+    for (int i = 0 ; i < sizeof(DataPacket); i++) {
+        message.data[i] = DataPacket[i];
+    }
+    const bool ok = can.tryToSend (message) ;
+    if (ok) { // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
+      // Serial.print ("Sent: ") ;
+    } else {
+      // Serial.print ("Send failure") ;
+    }
 }
 
 void setup()
@@ -443,17 +537,13 @@ void loop()
             break;
         }
 
-        // May pull these into every state
         // Receive inbound CAN frames
         retrieveCAN();
-
-        readSensors();
 
         // Send outbound CAN frames
         sendCAN();
 
         counter++;
-        timestamp = counter * (CONVERSION / LOOP_FREQUENCY); // TODO CHANGE THIS TO RECORD SYSTEM TIME
         timer.reset();
 
         // if (counter % 25 == 0) {
