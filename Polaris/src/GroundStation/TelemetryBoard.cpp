@@ -38,7 +38,6 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
             transmitPacket.timestamp = timestamp;
             transmitPacket.state = 0;
             transmitPacket.temperature = 32.0;
-            transmitPacket.pressure = 29.92;
             transmitPacket.acX = 10;
             transmitPacket.acY = 10;
             transmitPacket.acZ = 10;
