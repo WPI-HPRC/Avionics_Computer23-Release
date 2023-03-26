@@ -1,4 +1,4 @@
-const int ACCEL_THRESHOLD = 10; // m/s^2
+const int ACCEL_THRESHOLD = 3; // m/s^2 TODO: FIX THIS, should be 3G's
 
 const int HZ_10 = 10;
 const int HZ_100 = 100;

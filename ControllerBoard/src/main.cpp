@@ -13,10 +13,9 @@ Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 float timestamp;
 
-Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);
+Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);   // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro burnoutTimer = Metro(MOTOR_BURNOUT_INTERVAL); // 1 second timer after motor burnout detected
-Metro boostTimer = Metro(BOOST_MIN_LENGTH);
-boolean burnoutDetected = false;
+Metro boostTimer = Metro(BOOST_MIN_LENGTH);         // 3 second timer to ensure BOOST state is locked before possibility of state change
 
 int16_t transitionBuf[10];
 uint8_t transitionBufInd = 0;
@@ -24,7 +23,11 @@ uint8_t transitionBufInd = 0;
 boolean secondSweep = false;
 
 int16_t accelMag;
+int16_t pitch;
+int16_t roll;
+int16_t altitude;
 
+// must be set to millis() when entering a new state
 unsigned long state_start;
 
 enum AvionicsState
@@ -32,12 +35,12 @@ enum AvionicsState
     STARTUP,
     PRELAUNCH,
     BOOST,
-    COAST_CONTINGENCY,
+    // COAST_CONTINGENCY,
     COAST,
     DROGUE_DEPLOY,
-    DROGUE_CONTINGENCY,
+    // DROGUE_CONTINGENCY,
     DROGUE_DESCENT,
-    MAIN_CONTINGENCY,
+    // MAIN_CONTINGENCY,
     MAIN_DEPLOY,
     MAIN_DESCENT,
     POSTFLIGHT,
@@ -150,7 +153,8 @@ boolean landingDetect()
     return false; // TODO: WRITE SOMETHING HERE FOR REAL
 }
 
-void retrieveCAN() {
+void retrieveCAN()
+{
     // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
 
     // Unpack data frame from sensor board
@@ -163,15 +167,18 @@ void retrieveCAN() {
     constructPacket();
 }
 
-void constructPacket() {
+void constructPacket()
+{
     // TODO: Construct data packet from stored variables
 }
 
-void logData() {
+void logData()
+{
     // TODO: Write data packet to flash chip
 }
 
-void sendCAN() {
+void sendCAN()
+{
     // TODO: Send CAN frame with data packet
     // TODO: Send CAN frame with airbrakes actuation level
 }
@@ -180,13 +187,15 @@ void readSensors()
 {
     // TODO: Populate these from Sensor Board
     accelMag = 0;
+    pitch = 0;
+    roll = 0;
+    altitude = 0;
 }
 
 void setup()
 {
     Serial.begin(9600);
     SPI.begin();
-    // put your setup code here, to run once:
     // CAN Setup
 
     ACAN2517FDSettings settings(
@@ -223,33 +232,31 @@ void setup()
     else
     {
         Serial.print("Configuration error 0x");
-        Serial.println(errorCode, HEX); // getting error code 0x1 kRequestedConfigurationModeTimeOut
+        Serial.println(errorCode, HEX);
     }
 }
 
 void loop()
 {
-    // put your main code here, to run repeatedly:
+    // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
     if (timer.check() == 1)
-    { // controls how frequently this loop runs
+    {
         // update function call, receives CAN messages
         // updateSensorData();
 
-        // TODO write ABORT state switches
         switch (avionicsState)
         {
 
         case STARTUP:
-            if (prelaunchTimer.check() == 1) // 1 second timeout
+            // STARTUP state must be active for at least 1 second
+            if (prelaunchTimer.check() == 1)
             {
                 avionicsState = PRELAUNCH;
                 state_start = millis();
             }
-
             break;
         case PRELAUNCH:
-
-            // if accel high enough, case = BOOST
+            // detect acceleration of 3G's
             if (launchDetect())
             {
                 avionicsState = BOOST;
@@ -261,15 +268,10 @@ void loop()
             // Stay in this state for at least 3 seconds to prevent airbrake activation
             if (boostTimer.check() == 1)
             {
-                if (motorBurnoutDetect() && !burnoutDetected)
-                {
-                    burnoutDetected = true;
-                    burnoutTimer.reset();
-                }
-
-                if (burnoutDetected)
+                if (motorBurnoutDetect())
                 {
                     // airbrakeServo.enable;  // Add this back in when using the stack
+                    burnoutTimer.reset();
                     state_start = millis();
                     avionicsState = COAST;
                     // airbrakesTimer.reset();
@@ -277,48 +279,43 @@ void loop()
                 }
             }
             // Coast Contingency 8 second timeout
-            if (timeout(8000))
-            {
-                Serial.println("Boost phase timeout triggered!");
-                state_start = millis();
-                avionicsState = COAST_CONTINGENCY;
-                break;
-            }
-            break;
-        case COAST_CONTINGENCY:
-            // TODO Check if Coast appears normal, then move into COAST phase
-            // state_start = millis();
-            // avionicsState = COAST;
-            // break;
+            // Burnout wasn't detected after 8 seconds, move into coast contingency
+            // if (timeout(8000))
+            // {
+            //     Serial.println("Boost phase timeout triggered!");
+            //     state_start = millis();
+            //     avionicsState = COAST_CONTINGENCY;
+            //     break;
+            // }
 
-            // TODO Determine timeout length
-            if (timeout(10000))
-            {
-                Serial.println("Coast Contingency phase timeout triggered!");
-                state_start = millis();
-                avionicsState = DROGUE_CONTINGENCY;
-                break;
-            }
-            break;
+            // ABORT Case
+            // Pitch or roll exceeds 30 degrees from vertical
+            // Acceleration is greater than 10g's
+
+            // break;
+        // case COAST_CONTINGENCY:
+        //     // TODO Check if Coast appears normal, then move into COAST phase
+        //     // state_start = millis();
+        //     // avionicsState = COAST;
+        //     // break;
+
+        //     // TODO Determine timeout length
+        //     if (timeout(10000))
+        //     {
+        //         Serial.println("Coast Contingency phase timeout triggered!");
+        //         state_start = millis();
+        //         avionicsState = DROGUE_CONTINGENCY;
+        //         break;
+        //     }
+        //     break;
         case COAST:
-            // Wait 30 seconds before moving into DROGUE_DEPLOY state
-            if (timeout(30000))
-            {
-                Serial.println("Coast phase timeout triggered!");
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
-                break;
-            }
 
             // active airbrakes control
             // Sweep program for test launch
             // Send message to power board to actuate the motor
             // airbrakeSweep();
 
-            // if descending, case = DESCENT
-            // Velocity 0?
-            // Decreasing altitude
-
+            // TODO: flesh this out more, need to clarify apogee detection
             if (apogeeDetect())
             {
                 // airbrakeServo.setPosition(0); // Need to do this upon state transition
@@ -328,84 +325,129 @@ void loop()
                 avionicsState = DROGUE_DEPLOY;
             }
 
+            // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
+            if (timeout(30000))
+            {
+                Serial.println("Coast phase timeout triggered!");
+                state_start = millis();
+                avionicsState = DROGUE_DEPLOY;
+                break;
+            }
+
+            // ABORT Case
+            // Pitch or roll exceeds 30 degrees from vertical
+            // Acceleration is greater than 10g's
+                // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
+
             break;
         case DROGUE_DEPLOY:
-
-            break;
-        case DROGUE_CONTINGENCY:
-            // TODO Check for expected drogue descent rate, then move into DROGUE_DESCENT state
+            // TODO: Check for nominal drogue descent rate, then move into DROGUE_DESCENT state
+            // Poll for a second?
             // state_start = millis();
             // avionicsState = DROGUE_DESCENT;
-            // break;
 
-            // TODO Determine timeout length
-            if (timeout(10000))
-            {
-                Serial.println("Drogue Contingency phase timeout triggered!");
+            // ABORT Case
+            // 10 second timeout
+            if (timeout(10000)) {
                 state_start = millis();
-                avionicsState = MAIN_CONTINGENCY;
-                break;
+                avionicsState = ABORT;
             }
             break;
+        // case DROGUE_CONTINGENCY:
+        //     // TODO Check for expected drogue descent rate, then move into DROGUE_DESCENT state
+        //     // state_start = millis();
+        //     // avionicsState = DROGUE_DESCENT;
+        //     // break;
+
+        //     // TODO Determine timeout length
+        //     if (timeout(10000))
+        //     {
+        //         Serial.println("Drogue Contingency phase timeout triggered!");
+        //         state_start = millis();
+        //         avionicsState = MAIN_CONTINGENCY;
+        //         break;
+        //     }
+        //     break;
         case DROGUE_DESCENT:
-            if (timeout(100000))
-            {
-                Serial.println("Drogue Descent phase timeout triggered!");
-                avionicsState = MAIN_DEPLOY;
-                break;
-            }
+            // detect altitude drop below 1500ft
+            // state_start = millis();
+            // avionicsState = MAIN_DEPLOY;
+
+            // // 120 second contingency timeout
+            // if (timeout(120000)) {
+            //     Serial.println("Drogue Descent phase timeout triggered!");
+            //     state_start = millis();
+            //     avionicsState = MAIN_CONTINGENCY;
+            //     break;
+            // }
             break;
         case MAIN_DEPLOY:
-
-            break;
-        case MAIN_CONTINGENCY:
-            // TODO Check for expected main descent rate, then move into MAIN_DESCENT state
+            // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
+            // Poll for a second?
             // state_start = millis();
             // avionicsState = MAIN_DESCENT;
-            // break;
 
-            // TODO Determine timeout length
-            if (timeout(10000))
-            {
-                Serial.println("Main Contingency phase timeout triggered!");
+            // ABORT Case
+            // 10 second timeout
+            if (timeout(10000)) {
                 state_start = millis();
-                avionicsState = POSTFLIGHT;
-                break;
+                avionicsState = ABORT;
             }
             break;
+        // case MAIN_CONTINGENCY:
+        //     // TODO Check for expected main descent rate, then move into MAIN_DESCENT state
+        //     // state_start = millis();
+        //     // avionicsState = MAIN_DESCENT;
+        //     // break;
+
+        //     // TODO Determine timeout length
+        //     if (timeout(10000))
+        //     {
+        //         Serial.println("Main Contingency phase timeout triggered!");
+        //         state_start = millis();
+        //         avionicsState = POSTFLIGHT;
+        //         break;
+        //     }
+        //     break;
         case MAIN_DESCENT:
-            if (timeout(90000))
+            // transmit data during this phase
+
+            // altitude below 50ft
+            // other checks?
+            if (landingDetect())
+            {
+                state_start = millis();
+                avionicsState = POSTFLIGHT;
+            }
+
+            // timeout after 100 seconds if other checks fail
+            if (timeout(100000))
             {
                 Serial.println("Main Descent phase timeout triggered!");
                 avionicsState = POSTFLIGHT;
                 break;
             }
-
-            // if accel jumps aka landing, case = POSTFLIGHT
-            // What is accel jump? What value are we expecting?
-            if (landingDetect())
-            {
-                avionicsState = POSTFLIGHT;
-            }
             break;
         case POSTFLIGHT:
             // datalog slow
-
+            // low power mode other peripherals
             break;
         case ABORT:
             // jump to here if anything goes terribly wrong (but obv it won't)
-            // datalog
-
+            // retract airbrakes
+            // stop all other processes
+            // Start sending high-fidelity data backwards in time from abort trigger to launch from flash
             break;
 
         default:
-
             break;
         }
 
         // May pull these into every state
         // Receive inbound CAN frames
         retrieveCAN();
+
+        readSensors();
 
         // Send outbound CAN frames
         sendCAN();
