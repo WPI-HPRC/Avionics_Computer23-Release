@@ -1,6 +1,6 @@
 Sensorboard TX CAN Frame
 ID: 0x0001
-Length (bytes): 48
+Length (bytes): 64
 Byte: Data:
 ---------------------------------Accelerometer Data-------------------------------
 *Little Endian Floats* Units: g's
@@ -67,12 +67,39 @@ Byte: Data:
 42: Temperature [23:16]
 43: Temperature [31:24]
 
+---------------------------------GPS Data-------------------------------
+*Little Endian Floats* Units: degrees
+44: Latitude [7:0]
+45: Latitude [15:8]
+46: Latitude [23:16]
+47: Latitude [31:24]
+
+48: Longitude [7:0]
+49: Longitude [15:8]
+50: Longitude [23:16]
+51: Longitude [31:24]
+
 ---------------------------------Time Data-------------------------------
 Time is in milliseconds
-44: Time Data [7:0]
-45: Time Data [15:8]
-46: Time Data [23:16]
-47: Time Data [31:24]
+52: Time Data [31:24]
+53: Time Data [23:16]
+54: Time Data [15:8]
+55: Time Data [7:0]
+
+---------------------------------Padding (All Zeros)-------------------------------
+56: Padding [7:0]
+57: Padding [15:8]
+58: Padding [23:16]
+59: Padding [31:24]
+
+60: Padding [7:0]
+61: Padding [15:8]
+62: Padding [23:16]
+63: Padding [31:24]
+
+
+
+
 
 
 

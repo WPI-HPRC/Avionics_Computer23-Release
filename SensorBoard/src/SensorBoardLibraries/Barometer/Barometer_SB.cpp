@@ -1,5 +1,4 @@
 #include "Barometer_SB.h"
-#include "Arduino.h"
 #include "Wire.h"
 #include "MS5611_Registers.h"
 #include <SensorBoardLibraries/Config.h>
@@ -29,13 +28,13 @@ void MS5611::sendCommand(uint8_t command){
     @return True if the sensor is setup correctly, false otherwise
 */
 bool MS5611::setup(){
-    Serial.println("Initializing Barometer");
+    // Serial.println("Initializing Barometer");
     this->readCalibrationData();
-    Serial.println("Resetting Barometer");
+    // Serial.println("Resetting Barometer");
     sendCommand(RESET);
     delay(10);
-    Serial.println("Barometer Reset Complete");
-    Serial.println("Barometer Setup Complete");
+    // Serial.println("Barometer Reset Complete");
+    // Serial.println("Barometer Setup Complete");
     //TODO Read data from the sensor to make sure it is working
     return true;
 }
@@ -82,8 +81,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C1 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("SENS_T1: ");
-    Serial.println((uint16_t)((Buffer[0] << 8)|Buffer[1]));
+    // Serial.print("SENS_T1: ");
+    // Serial.println((uint16_t)((Buffer[0] << 8)|Buffer[1]));
 
     sendCommand(PROM_READ_ADDRESS_2);
     Wire.beginTransmission(this->I2C_Address);
@@ -91,8 +90,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C2 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("OFFT1: ");
-    Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
+    // Serial.print("OFFT1: ");
+    // Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
 
     sendCommand(PROM_READ_ADDRESS_3);
     Wire.beginTransmission(this->I2C_Address);
@@ -100,8 +99,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C3 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("TCS: ");
-    Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
+    // Serial.print("TCS: ");
+    // Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
 
     sendCommand(PROM_READ_ADDRESS_4);
     Wire.beginTransmission(this->I2C_Address);
@@ -109,8 +108,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C4 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("TCO: ");
-    Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
+    // Serial.print("TCO: ");
+    // Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
     
     sendCommand(PROM_READ_ADDRESS_5);
     Wire.beginTransmission(this->I2C_Address);
@@ -118,8 +117,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C5 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("Tref: ");
-    Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
+    // Serial.print("Tref: ");
+    // Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
 
     sendCommand(PROM_READ_ADDRESS_6);
     Wire.beginTransmission(this->I2C_Address);
@@ -127,8 +126,8 @@ void MS5611::readCalibrationData(){
     Buffer[0] = Wire.read();
     Buffer[1] = Wire.read();
     this->calibrationData.C6 = ((uint16_t)((Buffer[0] << 8)|Buffer[1]));
-    Serial.print("TEMPSENS: ");
-    Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
-    Serial.println("Calibration Data Read Complete");
+    // Serial.print("TEMPSENS: ");
+    // Serial.println(((uint16_t)((Buffer[0] << 8)|Buffer[1])));
+    // Serial.println("Calibration Data Read Complete");
     Wire.endTransmission();
 }

@@ -1,7 +1,6 @@
 #include <SensorBoardLibraries\IMU\IMU_SB.h>
 #include <SensorBoardLibraries\Magnetometer\Magnetometer_SB.h>
 #include <SensorBoardLibraries\Barometer\Barometer_SB.h>
-#include <ACAN2517FD.h>
 #include "Config.h"
 #include "SensorboardFrame.hpp"
 
@@ -51,6 +50,7 @@ class Sensorboard{
         Buffer[27] = (uint8_t)((time >> 8) & 0xFFU);
         Buffer[28] = (uint8_t)(time & 0xFFU);
         this->ProcessBuffer();
+        Serial.println("Read Sensor");
     }
 
     void ProcessBuffer(){
@@ -68,30 +68,14 @@ class Sensorboard{
         frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
 
         // Barometer
-        frame.Temperature = barometer.calculateTemperature(MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]));
-        frame.Pressure = barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]));
+        barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure,&frame.Temperature);
 
         // Magnetometer
-        // frame.X_mag = MMC5983MA::processXAxis(Buffer[18],Buffer[19],Buffer[24]);
-        // frame.Y_mag = MMC5983MA::processYAxis(Buffer[20],Buffer[21],Buffer[24]);
-        // frame.Z_mag = MMC5983MA::processZAxis(Buffer[22],Buffer[23],Buffer[24]);
-        frame.X_mag = 0;
-        frame.Y_mag = 0;
-        frame.Z_mag = 0;
+        mag.calculateCalibratedValues(MMC5983MA::process18BitResolution(Buffer[18],Buffer[19],Buffer[25],0),MMC5983MA::process18BitResolution(Buffer[20],Buffer[21],Buffer[25],1),MMC5983MA::process18BitResolution(Buffer[22],Buffer[23],Buffer[25],2),&frame.X_mag,&frame.Y_mag,&frame.Z_mag);
 
         frame.time = millis();
 
         frame.latitude = 0;
         frame.longitude = 0;
-    }
-
-    /*
-        @brief Returns the buffer at the specified index
-        @param index The index of the buffer to return
-        @return The byte at the specified index if the index is valid (0-28) otherwise returns 0
-    */
-    uint8_t getBuffer(int index){
-        if (index < 0 || index > 28) return 0;
-        return Buffer[index];
     }
 };

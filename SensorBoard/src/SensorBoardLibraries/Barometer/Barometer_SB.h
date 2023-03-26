@@ -23,27 +23,36 @@ class MS5611 : public Sensor{
     bool setup();
     void readSensor(uint8_t *Data, int StartIndex);
     void readCalibrationData();
-    float calculateTemperature(uint32_t D2){
-        // Serial.println("D2: " + String(D2));
+    void calculatePressureAndTemperature(uint32_t D1, uint32_t D2, float *Pressure, float *Temperature){
         int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);
-        // Serial.println("dT: " + String(dT));
         int32_t TEMP = 2000 + (int32_t)dT * (int32_t)calibrationData.C6 / (int32_t)pow(2,23);
-        // Serial.println("TEMP: " + String(TEMP));
-        return (float)TEMP / 100.0;
-    }
-    float calculatePressure(uint32_t D1, uint32_t D2){
-        // Serial.println("D1: " + String(D1));
-        // Serial.println("D2: " + String(D2));
-        int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);
-        // Serial.println("dT: " + String(dT));
         int64_t OFF = (int64_t)calibrationData.C2 * (int64_t)pow(2,16) + (int64_t)dT * (int64_t)calibrationData.C4 / (int64_t)pow(2,7);
-        // Serial.println("OFF: " + String(OFF));
         int64_t SENS = (int64_t)calibrationData.C1 * (int64_t)pow(2,15) + (int64_t)dT * (int64_t)calibrationData.C3 / (int64_t)pow(2,8);
-        // Serial.println("SENS: " + String(SENS));
         int32_t P = (int32_t)((D1 * SENS / (int64_t)pow(2,21) - OFF) / (int64_t)pow(2,15));
-        // Serial.println("P: " + String(P));
-        return (float)P / 100.0;
-    }
+        *Pressure = (float)P / 100.0;
+        *Temperature = (float)TEMP / 100.0;
+    };
+    // float calculateTemperature(uint32_t D2){
+    //     // Serial.println("D2: " + String(D2));
+    //     int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);
+    //     // Serial.println("dT: " + String(dT));
+    //     int32_t TEMP = 2000 + (int32_t)dT * (int32_t)calibrationData.C6 / (int32_t)pow(2,23);
+    //     // Serial.println("TEMP: " + String(TEMP));
+    //     return (float)TEMP / 100.0;
+    // }
+    // float calculatePressure(uint32_t D1, uint32_t D2){
+    //     // Serial.println("D1: " + String(D1));
+    //     // Serial.println("D2: " + String(D2));
+    //     int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);
+    //     // Serial.println("dT: " + String(dT));
+    //     int64_t OFF = (int64_t)calibrationData.C2 * (int64_t)pow(2,16) + (int64_t)dT * (int64_t)calibrationData.C4 / (int64_t)pow(2,7);
+    //     // Serial.println("OFF: " + String(OFF));
+    //     int64_t SENS = (int64_t)calibrationData.C1 * (int64_t)pow(2,15) + (int64_t)dT * (int64_t)calibrationData.C3 / (int64_t)pow(2,8);
+    //     // Serial.println("SENS: " + String(SENS));
+    //     int32_t P = (int32_t)((D1 * SENS / (int64_t)pow(2,21) - OFF) / (int64_t)pow(2,15));
+    //     // Serial.println("P: " + String(P));
+    //     return (float)P / 100.0;
+    // }
     static uint32_t processHighMidLowByte(uint8_t high, uint8_t mid, uint8_t low){
         return (uint32_t)high << 16 | (uint32_t)mid << 8 | (uint32_t)low;
     }

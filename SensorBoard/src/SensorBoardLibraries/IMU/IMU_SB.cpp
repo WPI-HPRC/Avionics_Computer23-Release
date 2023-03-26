@@ -44,10 +44,10 @@ void ICM42688P::readRegister(uint8_t reg, uint8_t length, uint8_t* data, uint8_t
     // Switch to bank
     if(!switchToBank(bank)){
         // Serial.printf("Failed to switch to bank %d, when reading from register %d, aborting read",bank,reg);
-        Serial.println("Failed to switch to bank ");
-        Serial.print(bank);
-        Serial.print(" when reading from register ");
-        Serial.println(reg);
+        // Serial.println("Failed to switch to bank ");
+        // Serial.print(bank);
+        // Serial.print(" when reading from register ");
+        // Serial.println(reg);
         return;
     }
 
@@ -81,12 +81,12 @@ bool ICM42688P::writeRegister(uint8_t reg, uint8_t data, uint8_t bank){
     // Switch to bank
     if(!switchToBank(bank)){
         // Serial.printf("Failed to switch to bank %d, when writing %d to register %d, aborting write",bank,data,reg);
-        Serial.println("Failed to switch to bank ");
-        Serial.print(bank);
-        Serial.print(" when writing ");
-        Serial.print(data);
-        Serial.print(" to register ");
-        Serial.println(reg);
+        // Serial.println("Failed to switch to bank ");
+        // Serial.print(bank);
+        // Serial.print(" when writing ");
+        // Serial.print(data);
+        // Serial.print(" to register ");
+        // Serial.println(reg);
         return false;
     }
 
@@ -222,29 +222,29 @@ bool ICM42688P::setFilters(){
 */
 bool ICM42688P::setup(){
     if(!checkWhoAmI()){
-        Serial.println("IMU:Who am I check failed");
+        // Serial.println("IMU:Who am I check failed");
         return false;
     }
-    Serial.println("IMU:Who am I check passed");
+    // Serial.println("IMU:Who am I check passed");
     if(!sensorEnable()){
-        Serial.println("IMU:Sensor enable failed");
+        // Serial.println("IMU:Sensor enable failed");
         return false;
     }
-    Serial.println("IMU:Sensor enable passed");
+    // Serial.println("IMU:Sensor enable passed");
     if(!setODR_FS()){
-        Serial.println("IMU:Set ODR and FS failed");
+        // Serial.println("IMU:Set ODR and FS failed");
         return false;
     }
-    Serial.println("IMU:Set ODR and FS passed");
+    // Serial.println("IMU:Set ODR and FS passed");
     if(!setFilters()){
-        Serial.println("IMU:Set filters failed");
+        // Serial.println("IMU:Set filters failed");
         return false;
     }
-    Serial.println("IMU:Set filters passed");
+    // Serial.println("IMU:Set filters passed");
 
-    Serial.println("IMU:Switching to bank 0");
+    // Serial.println("IMU:Switching to bank 0");
     if (!switchToBank(0)){
-        Serial.println("IMU:Failed to switch to bank 0");
+        // Serial.println("IMU:Failed to switch to bank 0");
         return false;
     }
     //TODO:: Read data from the sensor to make sure it is working
