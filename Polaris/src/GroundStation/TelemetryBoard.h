@@ -25,9 +25,10 @@ enum TransceiverState {
 struct TelemetryPacket {
     uint32_t timestamp;
     uint8_t state;
-    float altitude;
+    float pressure;
     int8_t temperature;
-    int16_t voltage;
+    uint8_t vBatt;
+    uint8_t abPct;
     int16_t acX;
     int16_t acY;
     int16_t acZ;
