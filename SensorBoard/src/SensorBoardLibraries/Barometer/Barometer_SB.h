@@ -32,6 +32,15 @@ class MS5611 : public Sensor{
         *Pressure = (float)P / 100.0;
         *Temperature = (float)TEMP / 100.0;
     };
+    void calculatePressure(uint32_t D1, uint32_t D2, float *Pressure){
+        int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);
+        int32_t TEMP = 2000 + (int32_t)dT * (int32_t)calibrationData.C6 / (int32_t)pow(2,23);
+        int64_t OFF = (int64_t)calibrationData.C2 * (int64_t)pow(2,16) + (int64_t)dT * (int64_t)calibrationData.C4 / (int64_t)pow(2,7);
+        int64_t SENS = (int64_t)calibrationData.C1 * (int64_t)pow(2,15) + (int64_t)dT * (int64_t)calibrationData.C3 / (int64_t)pow(2,8);
+        int32_t P = (int32_t)((D1 * SENS / (int64_t)pow(2,21) - OFF) / (int64_t)pow(2,15));
+        *Pressure = (float)P / 100.0;
+    };
+
     // float calculateTemperature(uint32_t D2){
     //     // Serial.println("D2: " + String(D2));
     //     int32_t dT = D2 - (uint32_t)calibrationData.C5 * (uint32_t)pow(2,8);

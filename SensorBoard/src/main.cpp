@@ -33,7 +33,7 @@ void setup () {
 
   const uint32_t errorCode = can.begin (settings, []{can.isr();}) ; 
   if (errorCode == 0) {
-    Serial.println ("ACAN2517FD successfully configured") ;
+    // Serial.println ("ACAN2517FD successfully configured") ;
     // Serial.print ("Bit Rate prescaler: ") ;
     // Serial.println (settings.mBitRatePrescaler) ;
     // Serial.print ("Arbitration Phase segment 1: ") ;
@@ -51,15 +51,15 @@ void setup () {
     // Serial.print (settings.arbitrationSamplePointFromBitStart ()) ;
     // Serial.println ("%") ;
   }else{
-    Serial.print ("Configuration error 0x") ;
+    // Serial.print ("Configuration error 0x") ;
     Serial.println (errorCode, HEX) ;
   }
 
   // Initialize/Setup the Sensorboard
   if(sensorboard.setup()){
-    Serial.println("Sensorboard initialized");
+    // Serial.println("Sensorboard initialized");
   }else{
-    Serial.println("Sensorboard initialization failed");
+    // Serial.println("Sensorboard initialization failed");
   }
 }
 
@@ -73,47 +73,13 @@ void loop () {
     frame.id = 0x01;
     frame.ext = 0;
     frame.len = 64;
-    memcpy(frame.data, &sensorboard.frame, 56);
-    // Set the rest of the frame to 0
-    for (int i = 56; i < 64; i++) {
-      frame.data[i] = 0;
-    }
-    
+    memcpy(frame.data, &sensorboard.frame,64);
     const bool ok = can.tryToSend (frame);
-    if (ok) {
-      Serial.println("Sent");
-    }else{
-      Serial.println("Send failure");
-    }
+    // if (ok) {
+    //   Serial.println("Sent");
+    // }else{
+    //   Serial.println("Send failure");
+    // }
   }
-  // CANFDMessage frame ;
-  // frame.len = 64;
-  // if (gSendDate < millis ()) {
-  // sensorboard.readSensor();
-  // // copy data from sensorboard frame to CANFD frame
-  // frame.id = 0x01;
-  // frame.ext = 0;
-  // memcpy(frame.data, &sensorboard.frame, 56);
-  //   gSendDate += 1000 ;
-  //   const bool ok = can.tryToSend (frame) ;
-  //   if (ok) {
-  //     gSentFrameCount += 1 ;
-  //     Serial.print ("Sent: ") ;
-  //     Serial.print (gSentFrameCount) ;
-  //   }else{
-  //     Serial.print ("Send failure") ;
-  //   }
-  //   Serial.print (", receive overflows: ") ;
-  //   Serial.println (can.hardwareReceiveBufferOverflowCount ()) ;
-  // }
-  // if (gReceiveDate < millis ()) {
-  //   gReceiveDate += 4567 ;
-  //   while (can.available ()) {
-  //     can.receive (frame) ;
-  //     // Print the received frame
-  //     gReceivedFrameCount ++ ;
-  //     Serial.print (" Received: ") ;
-  //     Serial.println (gReceivedFrameCount) ;
-  //   }
-  // }
+
 }

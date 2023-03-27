@@ -95,13 +95,13 @@ void MMC5983MA::sensorEnable()
 */
 bool MMC5983MA::setup()
 {
-    Serial.println("Initializing Magnetometer");
+    // Serial.println("Initializing Magnetometer");
     if(!CheckProductID())
     {
         return false;
     }
-    Serial.println("Magnetometer ID Check Passed");
-    Serial.println("Enabling Magnetometer");
+    // Serial.println("Magnetometer ID Check Passed");
+    // Serial.println("Enabling Magnetometer");
     sensorEnable();
     Serial.println("Magnetometer Enabled");
     return true;
