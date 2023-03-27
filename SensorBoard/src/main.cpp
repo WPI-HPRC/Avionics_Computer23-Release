@@ -28,8 +28,8 @@ void setup () {
 
   settings.mRequestedMode = ACAN2517FDSettings::InternalLoopBack ; // Select loopback mode
 
-  settings.mDriverTransmitFIFOSize = 3 ;
-  settings.mDriverReceiveFIFOSize = 3 ;
+  settings.mDriverTransmitFIFOSize = 5 ;
+  settings.mDriverReceiveFIFOSize = 5 ;
 
   const uint32_t errorCode = can.begin (settings, []{can.isr();}) ; 
   if (errorCode == 0) {
@@ -75,11 +75,11 @@ void loop () {
     frame.len = 64;
     memcpy(frame.data, &sensorboard.frame,64);
     const bool ok = can.tryToSend (frame);
-    // if (ok) {
-    //   Serial.println("Sent");
-    // }else{
-    //   Serial.println("Send failure");
-    // }
+    if (ok) {
+      Serial.println("Sent");
+    }else{
+      Serial.println("Send failure");
+    }
   }
 
 }
