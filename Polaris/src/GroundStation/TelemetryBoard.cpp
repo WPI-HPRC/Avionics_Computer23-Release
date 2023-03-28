@@ -1,199 +1,99 @@
-/**
- * @file TelemetryBoard.cpp
- * @author Ground Station
- * @brief Telemetry board transceiver code
- * @version 0.1
- * @date 2023-1-20
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
-#include "TelemetryBoard.h"
+#include <GroundStation/TelemetryBoard.h>
 
 TelemetryBoard::TelemetryBoard() {
-
+    e32ttl.begin();
 }
 
-int TelemetryBoard::initTelem() {
+bool TelemetryBoard::init() {
+    ResponseStructContainer c;
+    c = e32ttl.getConfiguration();
+    Configuration config = *(Configuration*) c.data;
 
-    Serial1.begin(9600);
+    config.ADDL = ADDL;
+    config.ADDH = ADDH;
+    config.CHAN = CHAN;
 
-    transceiver->init(1);
+    config.SPED.airDataRate = 5;
+    config.SPED.uartBaudRate = 3;
+    config.SPED.uartParity = 0;
 
-    transceiver->SetAddressH(0);
-	transceiver->SetAddressL(0);        
-    transceiver->SetChannel(58); // this is 920 mHz :)
+    config.OPTION.fec = 1;
+    config.OPTION.transmissionPower = 0;
+    config.OPTION.wirelessWakeupTime = 0;
+    config.OPTION.fixedTransmission = FT_FIXED_TRANSMISSION;
 
-    transceiver->SetParityBit(0); //Speed bit
-    transceiver->SetUARTBaudRate(3); //9600 baud
-    transceiver->SetAirDataRate(4); // air data rate: 9.6K ;)
+    e32ttl.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+    printParameters(config);
 
-    transceiver->SetTransmissionMode(0);
-    transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(1);
-    transceiver->SetTransmitPower(0);
-    transceiver->SetAddressH(0);
-    transceiver->SetAddressL(0);
-    transceiver->SetParityBit(0);
-    transceiver->SetUARTBaudRate(3);
-    transceiver->SetTransmissionMode(0);
-    transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(1);
-
-    transceiver->SaveParameters(); // NOTIHNG WILL BE SAVED... UNLESS... SAVEPARAMETERS IS CALLED :(
-    transceiver->PrintParameters();
-
-    Serial.println("Telemetry board intialized!");
-
-    return 1;
+    c.close();
 }
 
-void TelemetryBoard::setState(TelemBoardState state) {
-    this->telemetryState = state;
+void TelemetryBoard::setState(TransceiverState newState) {
+    this->transmitterState = newState;
 }
 
-void TelemetryBoard::printToGS() {
-    uint32_t timestamp = currentRocketPacket.timestamp;
-    uint8_t * tspB = (uint8_t *) &timestamp;
+void TelemetryBoard::onLoop(uint32_t timestamp) {
+    switch(transmitterState) {
+        case(TX): {
+            transmitPacket.timestamp = timestamp;
+            transmitPacket.state = 0;
+            transmitPacket.temperature = 32.0;
+            transmitPacket.acX = 10;
+            transmitPacket.acY = 10;
+            transmitPacket.acZ = 10;
+            transmitPacket.gyX = 10;
+            transmitPacket.gyY = 10;
+            transmitPacket.gyZ = 10;
 
-    uint8_t state = currentRocketPacket.state;
+            ResponseStatus rs = e32ttl.sendFixedMessage(ADDH,ADDL,CHAN, &transmitPacket, sizeof(TelemetryPacket));
 
-    float altitude = currentRocketPacket.altitude;
-    uint8_t * altB = (uint8_t *) &altitude;
+            Serial.print("Packet ("); Serial.print(timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
-    float temperature = currentRocketPacket.temperature;
-    uint8_t * tmpB = (uint8_t *) &temperature;
+            break;
+        }
+        case (RX): {
+            if(e32ttl.available() > 1) {
+                ResponseStructContainer rsc = e32ttl.receiveMessage(sizeof(TelemetryPacket));
+                TelemetryPacket newPacket = *(TelemetryPacket*) rsc.data;
+                Serial.print("Timestamp: "); Serial.println(newPacket.timestamp);
 
-    float pressure = currentRocketPacket.pressure;
-    uint8_t * prsB = (uint8_t *) &pressure;
-
-    // float accelx = currentRocketPacket.accelX;
-    // uint8_t * acxB = (uint8_t *) &accelx;
-
-    // float accely = currentRocketPacket.accelY;
-    // uint8_t * acyB = (uint8_t *) &accely;
-
-    // float accelz = currentRocketPacket.accelZ;
-    // uint8_t * aczB = (uint8_t *) &accelz;
-
-    // float gyrox = currentRocketPacket.gyroX;
-    // uint8_t * gyxB = (uint8_t *) &gyrox;
-
-    // float gyroy = currentRocketPacket.gyroY;
-    // uint8_t * gyyB = (uint8_t *) &gyroy;
-
-    // float gyroz = currentRocketPacket.gyroZ;
-    // uint8_t * gyzB = (uint8_t *) &gyroz;
-
-    // Serial.println(sizeof(currentRocketPacket));
-
-    // Serial.print("Timestamp: ");
-    // Serial.println(timestamp);
-
-    // Serial.println("----");
-    // Serial.print("Altitude: ");
-    // Serial.println(altitude);
-
-    // Serial.println("----");
-    // Serial.print("Temp: ");
-    // Serial.println(temperature);
-    // Serial.println("----");
-
-    Serial.print(PACKET_BEG);
-    
-    Serial.print(TIMESTAMP_IDENT);
-    Serial.write(tspB[3]);
-    Serial.write(tspB[2]);
-    Serial.write(tspB[1]);
-    Serial.write(tspB[0]);
-
-    Serial.print(STATE_IDENT);
-    Serial.write(state);
-
-    Serial.print(ALTITUDE_IDENT);
-    Serial.write(altB[3]);
-    Serial.write(altB[2]);
-    Serial.write(altB[1]);
-    Serial.write(altB[0]);
-
-    Serial.print(TEMPERATURE_IDENT);
-    Serial.write(tmpB[3]);
-    Serial.write(tmpB[2]);
-    Serial.write(tmpB[1]);
-    Serial.write(tmpB[0]);
-
-    Serial.print(PRESSURE_IDENT);
-    Serial.write(prsB[3]);
-    Serial.write(prsB[2]);
-    Serial.write(prsB[1]);
-    Serial.write(prsB[0]);
-
-    // Serial.print(ACCELX_IDENT);
-    // Serial.write(acxB[3]);
-    // Serial.write(acxB[2]);
-    // Serial.write(acxB[1]);
-    // Serial.write(acxB[0]);
-
-    // Serial.print(ACCELY_IDENT);
-    // Serial.write(acyB[3]);
-    // Serial.write(acyB[2]);
-    // Serial.write(acyB[1]);
-    // Serial.write(acyB[0]);
-
-    // Serial.print(ACCELZ_IDENT);
-    // Serial.write(aczB[3]);
-    // Serial.write(aczB[2]);
-    // Serial.write(aczB[1]);
-    // Serial.write(aczB[0]);
-
-    // Serial.print(GYROX_IDENT);
-    // Serial.write(gyxB[3]);
-    // Serial.write(gyxB[2]);
-    // Serial.write(gyxB[1]);
-    // Serial.write(gyxB[0]);
-
-    // Serial.print(GYROY_IDENT);
-    // Serial.write(gyyB[3]);
-    // Serial.write(gyyB[2]);
-    // Serial.write(gyyB[1]);
-    // Serial.write(gyyB[0]);
-
-    // Serial.print(GYROY_IDENT);
-    // Serial.write(gyzB[3]);
-    // Serial.write(gyzB[2]);
-    // Serial.write(gyzB[1]);
-    // Serial.write(gyzB[0]);
-    
-    Serial.print(PACKET_END);
-}
-
-void TelemetryBoard::onLoop() {
-    //Update packet
-
-    switch(telemetryState) {
-        case RX: {
-            if(transceiver->available()) {
-                transceiver->GetStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-                printToGS();
+                rsc.close();
+                
             }
-            break;
-        }
 
-        case LOW_POWER: {
-
-            Serial.println("TX: Low Power!");
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            break;
-        }
-
-        case HIGH_POWER: {
-
-            Serial.println("TX: High Power!");
-
-            transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
             break;
         }
     }
-};
+}
+
+void TelemetryBoard::printParameters(struct Configuration configuration) {
+    Serial.println("----------------------------------------");
+
+	Serial.print(F("HEAD : "));  Serial.print(configuration.HEAD, BIN);Serial.print(" ");Serial.print(configuration.HEAD, DEC);Serial.print(" ");Serial.println(configuration.HEAD, HEX);
+	Serial.println(F(" "));
+	Serial.print(F("AddH : "));  Serial.println(configuration.ADDH, DEC);
+	Serial.print(F("AddL : "));  Serial.println(configuration.ADDL, DEC);
+	Serial.print(F("Chan : "));  Serial.print(configuration.CHAN, DEC); Serial.print(" -> "); Serial.println(configuration.getChannelDescription());
+	Serial.println(F(" "));
+	Serial.print(F("SpeedParityBit     : "));  Serial.print(configuration.SPED.uartParity, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getUARTParityDescription());
+	Serial.print(F("SpeedUARTDatte  : "));  Serial.print(configuration.SPED.uartBaudRate, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getUARTBaudRate());
+	Serial.print(F("SpeedAirDataRate   : "));  Serial.print(configuration.SPED.airDataRate, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getAirDataRate());
+
+	Serial.print(F("OptionTrans        : "));  Serial.print(configuration.OPTION.fixedTransmission, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getFixedTransmissionDescription());
+	Serial.print(F("OptionPullup       : "));  Serial.print(configuration.OPTION.ioDriveMode, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getIODroveModeDescription());
+	Serial.print(F("OptionWakeup       : "));  Serial.print(configuration.OPTION.wirelessWakeupTime, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getWirelessWakeUPTimeDescription());
+	Serial.print(F("OptionFEC          : "));  Serial.print(configuration.OPTION.fec, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getFECDescription());
+	Serial.print(F("OptionPower        : "));  Serial.print(configuration.OPTION.transmissionPower, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getTransmissionPowerDescription());
+	Serial.println("----------------------------------------");
+
+}
+
+void TelemetryBoard::printModuleInformation(struct ModuleInformation moduleInformation) {
+    Serial.println("----------------------------------------");
+	Serial.print(F("HEAD BIN: "));  Serial.print(moduleInformation.HEAD, BIN);Serial.print(" ");Serial.print(moduleInformation.HEAD, DEC);Serial.print(" ");Serial.println(moduleInformation.HEAD, HEX);
+
+	Serial.print(F("Freq.: "));  Serial.println(moduleInformation.frequency, HEX);
+	Serial.print(F("Version  : "));  Serial.println(moduleInformation.version, HEX);
+	Serial.print(F("Features : "));  Serial.println(moduleInformation.features, HEX);
+	Serial.println("----------------------------------------");
+}
