@@ -5,7 +5,7 @@
 //MCP2517 setup Parameters
 
 //------------------------ IMU ------------------------//
-const uint8_t IMU_I2C_ADDRESS = 0x68;
+const uint8_t IMU_I2C_ADDRESS = 0x69;
 
 
 // IMU Register sets - LOOK AT THE DATASHEET FOR MORE INFO

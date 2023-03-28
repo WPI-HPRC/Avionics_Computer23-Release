@@ -15,6 +15,9 @@ class ICM42688P : public Sensor{
     bool setup();
     ICM42688P(TwoWire &bus,uint8_t address);
     static int16_t processHighLowByte(uint8_t high, uint8_t low);
+    static float processAxis(int16_t axisReading, float sensitivity){
+        return (float)axisReading / (float)sensitivity;
+    }
 
     private:
     uint8_t I2C_Address;
@@ -28,5 +31,6 @@ class ICM42688P : public Sensor{
     bool sensorEnable();
     bool setFilters();
     bool setODR_FS();
+    
     
 };
