@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <eigen.h>
+// #include <eigen.h>
 /*
     @brief StateEstimator class for the controller board
     @author Samay Govani
@@ -10,7 +10,7 @@ enum EstimatorState{
 };
 
 
-using namespace Eigen;
+// using namespace Eigen;
 
 class StateEstimator{
     private:
@@ -32,7 +32,7 @@ class StateEstimator{
             11: y velocity
             12: z velocity
         */
-       Eigen::MatrixXf state = MatrixXf::Zero(13,1);
+//       Eigen::MatrixXf state = MatrixXf::Zero(13,1);
        
        /*
             @brief Current state of the estimator

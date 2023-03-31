@@ -2,46 +2,34 @@
 #include "Libraries/MetroTimer/Metro.h"
 #include "ControllerBoardConstants.h"
 #include "Libraries/ACAN2517FD/ACAN2517FD.h"
+#include "ControllerBoardLibraries/SensorboardFrame.hpp"
+#include "ControllerBoardLibraries/TelemetryFrame.hpp"
 
 // CAN Setup
 static const byte MCP2518FD_CS = 10;
 static const byte MCP2518FD_INT = 2;
-
 ACAN2517FD can(MCP2518FD_CS, SPI, MCP2518FD_INT);
 
 // Main timer declarations
 Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
-unsigned long state_start;
+unsigned long state_start;                        // must be set to millis() when entering a new state
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);   // 1 second timer to stay in STARTUP before moving to PRELAUNCH
-Metro burnoutTimer = Metro(MOTOR_BURNOUT_INTERVAL); // 1 second timer after motor burnout detected
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);         // 3 second timer to ensure BOOST state is locked before possibility of state change
-
-// must be set to millis() when entering a new state
-unsigned long state_start;
 
 // Declarations for state transition detection buffer
 int16_t transitionBuf[10];
 uint8_t transitionBufInd = 0;
 
-// Declaration of data packet array
-uint8_t DataPacket[24] = {0};
+// Declaration for sensor data struct
+SensorboardFrame sensorData;
 
-// Variable declarations for raw sensor data
-uint32_t timestamp;
-float pressure;
-int8_t temperature;
+// Declaration for telemetry packet struct
+TelemetryFrame telemPacket;
+
+// Variable declarations for measured values
 uint8_t vBatt;
-int16_t acX;
-int16_t acY;
-int16_t acZ;
-int16_t gyX;
-int16_t gyY;
-int16_t gyZ;
-int16_t magX;
-int16_t magY;
-int16_t magZ;
 
 // Variable declarations for filtered state data
 int16_t posX;
@@ -57,12 +45,12 @@ enum AvionicsState
     STARTUP,
     PRELAUNCH,
     BOOST,
-    // COAST_CONTINGENCY,
+    COAST_CONTINGENCY,
     COAST,
     DROGUE_DEPLOY,
-    // DROGUE_CONTINGENCY,
+    DROGUE_CONTINGENCY,
     DROGUE_DESCENT,
-    // MAIN_CONTINGENCY,
+    MAIN_CONTINGENCY,
     MAIN_DEPLOY,
     MAIN_DESCENT,
     POSTFLIGHT,
@@ -72,7 +60,7 @@ enum AvionicsState
 AvionicsState avionicsState = STARTUP;
 
 // checks whether the state has timed out yet
-bool timeout(uint16_t length)
+bool timeout(uint32_t length)
 {
     // check state length against current time - start time for the current state
     if (millis() - state_start >= length)
@@ -91,7 +79,7 @@ boolean launchDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = acZ;
+    transitionBuf[transitionBufInd] = sensorData.Z_accel;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -120,7 +108,7 @@ boolean motorBurnoutDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = acZ;
+    transitionBuf[transitionBufInd] = sensorData.Z_accel;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -149,7 +137,7 @@ boolean apogeeDetect()
     // if descending, case = DESCENT
     // Decreasing altitude
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = acZ;
+    transitionBuf[transitionBufInd] = sensorData.Z_accel;
     // not going to be running avg, so this needs to be changed
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
@@ -170,31 +158,57 @@ boolean landingDetect()
     return false; // TODO: WRITE SOMETHING HERE FOR REAL
 }
 
+int8_t pressureToAltitude(float pressure) {
+    return 0;
+}
+
+// Construct the data packet
+void constructPacket() {
+
+    // TODO: When state estiation is completed, need to update this to include velocity, orientation, etc.
+
+    // Timestamp
+    telemPacket.timestamp = sensorData.time;
+
+    // State
+    telemPacket.state = (uint8_t) avionicsState;
+
+    // Altitude
+    telemPacket.altitude = pressureToAltitude(sensorData.Pressure);
+
+    // Temperature
+    telemPacket.temperature = 0;
+
+    // Battery voltage
+    telemPacket.vBatt = (uint8_t) vBatt*20;
+
+    // Airbrake actuation percent
+    telemPacket.abPct = abPct;
+
+    // Acceleration (XYZ)
+    telemPacket.ac_x = (int16_t) sensorData.X_accel*100;
+    telemPacket.ac_y = (int16_t) sensorData.Y_accel*100;
+    telemPacket.ac_z = (int16_t) sensorData.Z_accel*100;
+
+    // // Angular rate (XYZ)
+    telemPacket.gy_x = (int16_t) sensorData.X_gyro*10;
+    telemPacket.gy_y = (int16_t) sensorData.Y_gyro*10;
+    telemPacket.gy_z = (int16_t) sensorData.Z_gyro*10;
+}
+
 void retrieveCAN()
 {
     // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
     CANFDMessage message;
 
     // Unpack data frame from sensor board
-    // TODO: Add needed conversions or scaling to this function
     if (message.id == CAN_ID_SENSOR_DATA) {    
-
-        acX = bufferToInt16(message.data[0], message.data[1]);
-        acY = bufferToInt16(message.data[2], message.data[3]);
-        acZ = bufferToInt16(message.data[4], message.data[5]);
-        gyX = bufferToInt16(message.data[6], message.data[7]);
-        gyY = bufferToInt16(message.data[8], message.data[9]);
-        gyZ = bufferToInt16(message.data[10], message.data[11]);
-        // TODO: Barometer. This is 6 bytes ([12] - [17]) but idk what this data actually is. Need temperature and pressure.
-        magX = bufferToInt16(message.data[18], message.data[19]);
-        magY = bufferToInt16(message.data[20], message.data[21]);
-        magZ = bufferToInt16(message.data[22], message.data[23]);
-        timestamp = bufferToUint32(message.data[25], message.data[26], message.data[27], message.data[28]);
+        memcpy(&sensorData, message.data, 64);
     } 
     
     // Unpack GPS frame from sensor board
     else if (message.id == CAN_ID_GPS) {
-        // TODO: Figure out how to unpack GPS data. This has not been implemented on the transmitting side yet in the sensor board project.
+        // TODO: Figure out how to unpack GPS data.This will either be part of the other frame, or same deal placed here.
     }  
 
     // Unpack battery voltage from power board
@@ -204,61 +218,6 @@ void retrieveCAN()
 
     // Construct data packet
     constructPacket();
-}
-
-int16_t bufferToInt16(uint8_t upper, uint8_t lower) {
-    return lower | upper << 8;
-}
-
-uint32_t bufferToUint32(uint8_t data3, uint8_t data2, uint8_t data1, uint8_t data0) {
-    return data0 | data1 << 8 | data2 << 16 | data3 << 24;
-}
-
-// Construct the data packet
-void constructPacket() {
-
-    // TODO: When state estiation is completed, need to update this to include velocity, orientation, etc.
-
-    // Timestamp
-    DataPacket[0] = (uint8_t) ((timestamp >> 24) & 0xFFU);
-    DataPacket[1] = (uint8_t) ((timestamp >> 16) & 0xFFU);
-    DataPacket[2] = (uint8_t) ((timestamp >> 8) & 0xFFU);
-    DataPacket[3] = (uint8_t) (timestamp & 0xFFU);
-
-    // State
-    DataPacket[4] = (uint8_t) avionicsState;
-
-    // Altitude 
-    // TODO: Actually create an altitude variable and then update this. Currently have pressure but need to calculate altitude.
-    DataPacket[5] = 0;
-    DataPacket[6] = 0;
-    DataPacket[7] = 0;
-    DataPacket[8] = 0;
-
-    // Temperature
-    DataPacket[9] = temperature;
-
-    // Battery voltage
-    DataPacket[10] = vBatt;
-
-    // Airbrake actuation percent
-    DataPacket[11] = abPct;
-
-    // Acceleration (XYZ)
-    DataPacket[12] = (uint8_t) ((acX >> 8) & 0xFFU);
-    DataPacket[13] = (uint8_t) (acX & 0xFFU);
-    DataPacket[14] = (uint8_t) ((acY >> 8) & 0xFFU);
-    DataPacket[15] = (uint8_t) (acY & 0xFFU);
-    DataPacket[16] = (uint8_t) ((acZ >> 8) & 0xFFU);
-    DataPacket[17] = (uint8_t) (acZ & 0xFFU);
-
-    // Angular rate (XYZ)
-    DataPacket[18] = (uint8_t) ((acX >> 8) & 0xFFU);
-    DataPacket[19] = (uint8_t) (acX & 0xFFU);
-    DataPacket[20] = (uint8_t) ((acY >> 8) & 0xFFU);
-    DataPacket[21] = (uint8_t) (acY & 0xFFU);
-    DataPacket[22] = (uint8_t) ((acZ >> 8) & 0xFFU);
-    DataPacket[23] = (uint8_t) (acZ & 0xFFU);
 }
 
 void logData()
@@ -271,13 +230,16 @@ void doAirbrakeControls(uint16_t velVert, uint16_t velLat, float alt) {
     abPct = 0;
 }
 
+void lowPowerMode() {
+    // TODO: Do something. Probably want to send a state variable to all boards eventually.
+}
+
 // Send CAN frame with data packet
 void sendCAN() {
     CANFDMessage message;
-    message.id == CAN_ID_DATA_PACKET;
-    for (int i = 0 ; i < sizeof(DataPacket); i++) {
-        message.data[i] = DataPacket[i];
-    }
+    message.id = CAN_ID_DATA_PACKET;
+    message.len = 24;
+    memcpy(message.data, &telemPacket, 24);
     const bool ok = can.tryToSend (message) ;
     if (ok) { // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
       // Serial.print ("Sent: ") ;
@@ -365,16 +327,14 @@ void loop()
                 if (motorBurnoutDetect())
                 {
                     // airbrakeServo.enable;  // Add this back in when using the stack
-                    burnoutTimer.reset();
                     state_start = millis();
                     avionicsState = COAST;
-                    // airbrakesTimer.reset();
                     break;
                 }
             }
             // Coast Contingency 8 second timeout
             // Burnout wasn't detected after 8 seconds, move into coast contingency
-            // if (timeout(8000))
+            // if (timeout(BOOST_TIMEOUT))
             // {
             //     Serial.println("Boost phase timeout triggered!");
             //     state_start = millis();
@@ -420,7 +380,7 @@ void loop()
             }
 
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
-            if (timeout(30000))
+            if (timeout(COAST_TIMEOUT))
             {
                 Serial.println("Coast phase timeout triggered!");
                 state_start = millis();
@@ -442,7 +402,7 @@ void loop()
 
             // ABORT Case
             // 10 second timeout
-            if (timeout(10000)) {
+            if (timeout(DROGUE_DEPLOY_TIMEOUT)) {
                 state_start = millis();
                 avionicsState = ABORT;
             }
@@ -468,7 +428,7 @@ void loop()
             // avionicsState = MAIN_DEPLOY;
 
             // // 120 second contingency timeout
-            // if (timeout(120000)) {
+            // if (timeout(DROGUE_DESCENT_TIMEOUT)) {
             //     Serial.println("Drogue Descent phase timeout triggered!");
             //     state_start = millis();
             //     avionicsState = MAIN_CONTINGENCY;
@@ -483,7 +443,7 @@ void loop()
 
             // ABORT Case
             // 10 second timeout
-            if (timeout(10000)) {
+            if (timeout(MAIN_DEPLOY_TIMEOUT)) {
                 state_start = millis();
                 avionicsState = ABORT;
             }
@@ -515,7 +475,7 @@ void loop()
             }
 
             // timeout after 100 seconds if other checks fail
-            if (timeout(100000))
+            if (timeout(MAIN_DESCENT_TIMEOUT))
             {
                 Serial.println("Main Descent phase timeout triggered!");
                 avionicsState = POSTFLIGHT;
@@ -524,7 +484,7 @@ void loop()
             break;
         case POSTFLIGHT:
             // datalog slow
-            // low power mode other peripherals
+            lowPowerMode(); // TODO: Actually write this
             break;
         case ABORT:
             // jump to here if anything goes terribly wrong (but obv it won't)
