@@ -45,18 +45,7 @@ void TelemetryBoard::setPacket(TelemetryPacket updatedTxPacket) {
 void TelemetryBoard::onLoop(uint32_t timestamp) {
     switch(telemetryState) {
         case(TX): {
-            txPacket.timestamp = timestamp;
-            txPacket.state = 0;
-            txPacket.abPct = 0;
-            txPacket.altitude = 100;
-            txPacket.acX = 10;
-            txPacket.acY = 10;
-            txPacket.acZ = 10;
-            txPacket.gyX = 10;
-            txPacket.gyY = 10;
-            txPacket.gyZ = 10;
-
-            ResponseStatus rs = e32ttl.sendFixedMessage(0,3,4, &txPacket, packetSize);
+            ResponseStatus rs = e32ttl.sendFixedMessage(ADDH, ADDL, CHAN, &txPacket, packetSize);
 
             Serial.print("Packet Size: "); Serial.println((int) packetSize);
             Serial.print("Packet ("); Serial.print(timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());

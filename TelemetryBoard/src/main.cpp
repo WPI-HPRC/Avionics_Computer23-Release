@@ -18,13 +18,24 @@ void setup() {
 
   telemBoard = new TelemetryBoard();
 
-  telemBoard->setState(TX);
+  telemBoard->setState(RX);
   telemBoard->init();
 }
 
 void loop() {
     if(timer.check() == 1) {
         counter++;
+        TelemetryPacket txPacket;
+        txPacket.timestamp = timestamp;
+        txPacket.state = 0;
+        txPacket.abPct = 0;
+        txPacket.altitude = 100;
+        txPacket.acX = 10;
+        txPacket.acY = 10;
+        txPacket.acZ = 10;
+        txPacket.gyX = 10;
+        txPacket.gyY = 10;
+        txPacket.gyZ = 10;
 
         timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
 
