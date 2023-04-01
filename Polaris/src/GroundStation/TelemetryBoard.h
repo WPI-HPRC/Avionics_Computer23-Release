@@ -16,7 +16,7 @@
 
 #define FREQUENCY_868
 
-#include "LoRa_E32.h"
+#include <GroundStation/LoRa_E32.h>
 
 enum TransceiverState {
     RX, TX
@@ -25,7 +25,7 @@ enum TransceiverState {
 struct TelemetryPacket {
     uint32_t timestamp;
     uint8_t state;
-    float pressure;
+    float altitude;
     int8_t temperature;
     uint8_t vBatt;
     uint8_t abPct;
@@ -36,6 +36,16 @@ struct TelemetryPacket {
     int16_t gyY;
     int16_t gyZ;
 };
+
+#define PACKET_BEG "BEGB"
+#define TIMESTAMP_IDENT "TSP"
+#define STATE_IDENT "STT"
+#define ALTITUDE_IDENT "ALT"
+#define TEMPERATURE_IDENT "TMP"
+#define VOLTAGE_IDENT "VLT"
+#define AIRBRAKES_IDENT "ARB"
+#define PACKET_END "ENDB"
+
 
 class TelemetryBoard {
 public:
@@ -67,6 +77,8 @@ private:
     void printParameters(struct Configuration configuration);
 
     void printModuleInformation(struct ModuleInformation moduleInformation);
+
+    void printPacketToGS(TelemetryPacket rxPacket);
 
     TelemetryPacket transmitPacket;
 

@@ -1,115 +1,110 @@
-#include "TelemetryBoard.h"
+#include <GroundStation/TelemetryBoard.h>
 
-TelemetryBoard::TelemetryBoard() {
+TelemetryBoard::TelemetryBoard() {   
 }
 
-int TelemetryBoard::init() {
-    ESerial->begin(9600);
+bool TelemetryBoard::init() {
+    e32ttl.begin();
 
-    transceiver = new LoRaE32(ESerial, PIN_M0, PIN_M1, PIN_AUX);
+    ResponseStructContainer c;
+    c = e32ttl.getConfiguration();
 
-    if(!transceiver->init()) {
-        Serial.println("Error initializing telemetry!");
-        return -1;
-    }
+    Configuration config = *(Configuration*) c.data;
 
-    // Configure EByte E32-900T20S
-    transceiver->SetAddressH(0);
-    transceiver->SetAddressL(0); // Broadcast and rx all
-    transceiver->SetChannel(58); // 58 - 920MHz for E32-900T20S
-                                 // 20 - 920MHz for E32-915T20D
-    
-    transceiver->SetParityBit(0); // Parity bit -> 8N1
-    transceiver->SetUARTBaudRate(3); // 3 = 9600baud
-    transceiver->SetAirDataRate(4); // 3 = 4.8kbps, 4 = 9.6kbps
+    config.ADDL = ADDL;
+    config.ADDH = ADDH;
+    config.CHAN = CHAN;
 
-    transceiver->SetTransmissionMode(0);
-    transceiver->SetPullupMode(1);
-    transceiver->SetWORTIming(0);
-    transceiver->SetFECMode(1);
-    transceiver->SetTransmitPower(0); // Max Power
+    config.SPED.airDataRate = 5;
+    config.SPED.uartBaudRate = 4;
+    config.SPED.uartParity = 0;
 
-    transceiver->SaveParameters(PERMANENT);
-    transceiver->PrintParameters();
+    config.OPTION.fec = 1;
+    config.OPTION.transmissionPower = 0;
+    config.OPTION.ioDriveMode = 0;
+    config.OPTION.wirelessWakeupTime = 0;
+    config.OPTION.fixedTransmission = FT_FIXED_TRANSMISSION;
 
-    return 1;
+    e32ttl.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+
+    printParameters(config);
+
+    e32ttl.setMode(MODE_0_NORMAL);
+
+    c.close();
 }
 
-int TelemetryBoard::onLoop() {
+void TelemetryBoard::setState(TelemBoardState newState) {
+    this->telemetryState = newState;
+}
 
+void TelemetryBoard::setPacket(TelemetryPacket updatedTxPacket) {
+    memcpy(&txPacket, &updatedTxPacket, packetSize);
+}
+
+void TelemetryBoard::onLoop(uint32_t timestamp) {
     switch(telemetryState) {
-        case(RX): {
-            if(transceiver->available()) {
-                transceiver->GetStruct(&currentRocketPacket, packetSize);
+        case(TX): {
+            txPacket.timestamp = timestamp;
+            txPacket.state = 0;
+            txPacket.abPct = 0;
+            txPacket.altitude = 100;
+            txPacket.acX = 10;
+            txPacket.acY = 10;
+            txPacket.acZ = 10;
+            txPacket.gyX = 10;
+            txPacket.gyY = 10;
+            txPacket.gyZ = 10;
 
-                Serial.print("Timestamp: "); Serial.println(currentRocketPacket.timestamp);
-                // printPacketToGS();
-            }
+            ResponseStatus rs = e32ttl.sendFixedMessage(0,3,4, &txPacket, packetSize);
+
+            Serial.print("Packet Size: "); Serial.println((int) sizeof(Message));
+            Serial.print("Packet ("); Serial.print(timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
             break;
         }
-        case(TX): {
-            bool packetSuccess = transceiver->SendStruct(&currentRocketPacket, sizeof(currentRocketPacket));
-            Serial.print("Packet: ");
-            Serial.println(currentRocketPacket.timestamp);
-            Serial.print("Success?: ");
-            Serial.println(packetSuccess);
+
+        case(RX): {
+            if(e32ttl.available() > 1) {
+                ResponseStructContainer rsc = e32ttl.receiveMessage(packetSize);
+                TelemetryPacket rxPacket = *(TelemetryPacket*) rsc.data;
+                // Serial.print("Timestamp: "); Serial.println(rxPacket.timestamp);
+
+                rsc.close();
+            }
             break;
         }
     }
-
-    return 1;
 }
 
-void TelemetryBoard::printPacketToGS() {
-    uint32_t timestamp = currentRocketPacket.timestamp;
-    uint8_t * tspB = (uint8_t *) &timestamp;
+void TelemetryBoard::printParameters(struct Configuration configuration) {
+    Serial.println("----------------------------------------");
 
-    uint8_t state = currentRocketPacket.state;
+	Serial.print(F("HEAD : "));  Serial.print(configuration.HEAD, BIN);Serial.print(" ");Serial.print(configuration.HEAD, DEC);Serial.print(" ");Serial.println(configuration.HEAD, HEX);
+	Serial.println(F(" "));
+	Serial.print(F("AddH : "));  Serial.println(configuration.ADDH, DEC);
+	Serial.print(F("AddL : "));  Serial.println(configuration.ADDL, DEC);
+	Serial.print(F("Chan : "));  Serial.print(configuration.CHAN, DEC); Serial.print(" -> "); Serial.println(configuration.getChannelDescription());
+	Serial.println(F(" "));
+	Serial.print(F("SpeedParityBit     : "));  Serial.print(configuration.SPED.uartParity, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getUARTParityDescription());
+	Serial.print(F("SpeedUARTDatte  : "));  Serial.print(configuration.SPED.uartBaudRate, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getUARTBaudRate());
+	Serial.print(F("SpeedAirDataRate   : "));  Serial.print(configuration.SPED.airDataRate, BIN);Serial.print(" -> "); Serial.println(configuration.SPED.getAirDataRate());
 
-    float temperature = currentRocketPacket.temperature;
-    uint8_t * tmpB = (uint8_t *) &temperature;
+	Serial.print(F("OptionTrans        : "));  Serial.print(configuration.OPTION.fixedTransmission, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getFixedTransmissionDescription());
+	Serial.print(F("OptionPullup       : "));  Serial.print(configuration.OPTION.ioDriveMode, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getIODroveModeDescription());
+	Serial.print(F("OptionWakeup       : "));  Serial.print(configuration.OPTION.wirelessWakeupTime, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getWirelessWakeUPTimeDescription());
+	Serial.print(F("OptionFEC          : "));  Serial.print(configuration.OPTION.fec, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getFECDescription());
+	Serial.print(F("OptionPower        : "));  Serial.print(configuration.OPTION.transmissionPower, BIN);Serial.print(" -> "); Serial.println(configuration.OPTION.getTransmissionPowerDescription());
+	Serial.println("----------------------------------------");
 
-    float pressure = currentRocketPacket.pressure;
-    uint8_t * prsB = (uint8_t *) &pressure;
-
-    Serial.print(PACKET_BEG);
-    
-    Serial.print(TIMESTAMP_IDENT);
-    Serial.write(tspB[3]);
-    Serial.write(tspB[2]);
-    Serial.write(tspB[1]);
-    Serial.write(tspB[0]);
-
-    Serial.print(STATE_IDENT);
-    Serial.write(state);
-
-    Serial.print(TEMPERATURE_IDENT);
-    Serial.write(tmpB[3]);
-    Serial.write(tmpB[2]);
-    Serial.write(tmpB[1]);
-    Serial.write(tmpB[0]);
-
-    Serial.print(PRESSURE_IDENT);
-    Serial.write(prsB[3]);
-    Serial.write(prsB[2]);
-    Serial.write(prsB[1]);
-    Serial.write(prsB[0]);
-
-    Serial.print(PACKET_END);
 }
 
-//Getters
-TelemBoardState TelemetryBoard::getState() {
-    return telemetryState;
-}
+void TelemetryBoard::printModuleInformation(struct ModuleInformation moduleInformation) {
+    Serial.println("----------------------------------------");
+	Serial.print(F("HEAD BIN: "));  Serial.print(moduleInformation.HEAD, BIN);Serial.print(" ");Serial.print(moduleInformation.HEAD, DEC);Serial.print(" ");Serial.println(moduleInformation.HEAD, HEX);
 
-//Setters
-void TelemetryBoard::setState(TelemBoardState state) {
-    this->telemetryState = state;
-}
-
-void TelemetryBoard::setCurrentPacket(RocketPacket newPacket) {
-    // this->currentRocketPacket = newPacket;
-    memcpy(&currentRocketPacket, &newPacket, packetSize);
+	Serial.print(F("Freq.: "));  Serial.println(moduleInformation.frequency, HEX);
+	Serial.print(F("Version  : "));  Serial.println(moduleInformation.version, HEX);
+	Serial.print(F("Features : "));  Serial.println(moduleInformation.features, HEX);
+	Serial.println("----------------------------------------");
 }

@@ -37,7 +37,7 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
         case(TX): {
             transmitPacket.timestamp = timestamp;
             transmitPacket.state = 0;
-            transmitPacket.temperature = 32.0;
+            transmitPacket.temperature = 32;
             transmitPacket.acX = 10;
             transmitPacket.acY = 10;
             transmitPacket.acZ = 10;
@@ -55,7 +55,7 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
             if(e32ttl.available() > 1) {
                 ResponseStructContainer rsc = e32ttl.receiveMessage(sizeof(TelemetryPacket));
                 TelemetryPacket newPacket = *(TelemetryPacket*) rsc.data;
-                Serial.print("Timestamp: "); Serial.println(newPacket.timestamp);
+                printPacketToGS(newPacket);
 
                 rsc.close();
                 
@@ -64,6 +64,86 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
             break;
         }
     }
+}
+
+void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
+    uint32_t timestamp = rxPacket.timestamp;
+    uint8_t * tspB = (uint8_t *) &timestamp;
+
+    uint8_t state = rxPacket.state;
+
+    float altitude = rxPacket.altitude;
+    uint8_t * altB = (uint8_t *) &altitude;
+
+    int16_t accelX = rxPacket.acX;
+    uint8_t * acxB = (uint8_t *) &accelX;
+
+    int16_t accelY = rxPacket.acY;
+    uint8_t * acyB = (uint8_t *) &accelY;
+    
+    int16_t accelZ = rxPacket.acZ;
+    uint8_t * aczB = (uint8_t *) &accelZ;
+
+    int16_t gyroX = rxPacket.gyX;
+    uint8_t * gyX = (uint8_t *) &gyroX;
+
+    int16_t gyroY = rxPacket.gyY;
+    uint8_t * gyY = (uint8_t *) &gyroY;
+    
+    int16_t gyroZ = rxPacket.gyZ;
+    uint8_t * gyZ = (uint8_t *) &gyroZ;
+
+    Serial.print(PACKET_BEG);
+    
+    Serial.print(TIMESTAMP_IDENT);
+    Serial.write(tspB[3]);
+    Serial.write(tspB[2]);
+    Serial.write(tspB[1]);
+    Serial.write(tspB[0]);
+
+    Serial.print(STATE_IDENT);
+    Serial.write(state);
+
+    Serial.print(ALTITUDE_IDENT);
+    Serial.write(altB[3]);
+    Serial.write(altB[2]);
+    Serial.write(altB[1]);
+    Serial.write(altB[0]);
+
+    Serial.print(TEMPERATURE_IDENT);
+    Serial.write(rxPacket.temperature);
+
+    Serial.print(VOLTAGE_IDENT);
+    Serial.write(rxPacket.vBatt);
+
+    Serial.print(AIRBRAKES_IDENT);
+    Serial.write(rxPacket.abPct);
+
+    Serial.print("ACX");
+    Serial.write(acxB[1]);
+    Serial.write(acxB[0]);
+
+    Serial.print("ACY");
+    Serial.write(acyB[1]);
+    Serial.write(acyB[0]);
+
+    Serial.print("ACZ");
+    Serial.write(aczB[1]);
+    Serial.write(aczB[0]);
+
+    Serial.print("GYX");
+    Serial.write(gyX[1]);
+    Serial.write(gyX[0]);
+
+    Serial.print("GYY");
+    Serial.write(gyY[1]);
+    Serial.write(gyY[0]);
+    
+    Serial.print("GYZ");
+    Serial.write(gyZ[1]);
+    Serial.write(gyZ[0]);
+
+    Serial.print(PACKET_END);
 }
 
 void TelemetryBoard::printParameters(struct Configuration configuration) {

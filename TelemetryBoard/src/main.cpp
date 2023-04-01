@@ -1,43 +1,34 @@
-/**
- * @file main.cpp
- * @author Ground Station
- * @brief main ino for telemetry board
- * @version 0.1
- * @date 2023-1-13
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #include <Arduino.h>
 
 #include <GroundStation/TelemetryBoard.h>
+#include <lib/MyMetroTimer.h>
 
-constexpr static uint32_t loopFrequency = 100UL;
-volatile uint32_t prevTime = 0;
+#define CONVERSION 1000
+#define LOOP_FREQUENCY 10
 
-TelemetryBoard telemBoard = TelemetryBoard();
+MyMetro timer = MyMetro(CONVERSION / LOOP_FREQUENCY);
 
-RocketPacket newRocketPacket;
+int counter = 0;
+uint32_t timestamp;
+
+TelemetryBoard * telemBoard;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(57600);
 
-  telemBoard.init();
-  telemBoard.setState(TX);
+  telemBoard = new TelemetryBoard();
 
+  telemBoard->setState(TX);
+  telemBoard->init();
 }
 
 void loop() {
+    if(timer.check() == 1) {
+        counter++;
 
-  if(telemBoard.getState() == TX) {
-      newRocketPacket.timestamp = millis();
-      newRocketPacket.state = 0;
-      newRocketPacket.temperature = 100.0;
-      newRocketPacket.pressure = 29.92;
-  }
+        timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
 
-  telemBoard.onLoop();
-
-  delay(100);
-}
+        telemBoard->onLoop(timestamp);
+        timer.reset();
+    }
+} 

@@ -4,7 +4,7 @@
 #include <lib/MyMetroTimer.h>
 
 #define CONVERSION 1000
-#define LOOP_FREQUENCY 20
+#define LOOP_FREQUENCY 10
 
 MyMetro timer = MyMetro(CONVERSION / LOOP_FREQUENCY);
 
@@ -16,7 +16,7 @@ TelemetryBoard telemBoard = TelemetryBoard();
 void setup() {
   Serial.begin(115200);
 
-  telemBoard.setState(RX);
+  telemBoard.setState(TX);
   telemBoard.init();
 }
 
