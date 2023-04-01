@@ -15,8 +15,12 @@
 #include <SoftwareSerial.h>
 
 #define FREQUENCY_868
+#define ACTIVATE_SOFTWARE_SERIAL
 
 #include <GroundStation/LoRa_E32.h>
+#include <SPI.h>
+
+#include <FlashChip/FlashChip.h>
 
 enum TelemBoardState {
     RX, TX
@@ -59,6 +63,11 @@ public:
     void onLoop(uint32_t timestamp);
 
     void setState(TelemBoardState newState);
+
+    TelemBoardState getState() {
+        return telemetryState;
+    }
+    void setPacket(TelemetryPacket updatedTxPacket);
 private:
     constexpr static int PIN_M0 = 2;
     constexpr static int PIN_M1 = 3;
@@ -69,6 +78,7 @@ private:
     constexpr static int CHAN = 58;
     constexpr static int ADDH = 0;
     constexpr static int ADDL = 0;
+    constexpr static int FLASH_CS = 9;
 
     TelemBoardState telemetryState = RX;
 
@@ -76,11 +86,11 @@ private:
 
     TelemetryPacket txPacket;
 
-    LoRa_E32 e32ttl = LoRa_E32(PIN_TX, PIN_RX, PIN_AUX, PIN_M0, PIN_M1);
-
     void printParameters(struct Configuration configuration);
 
-    void printModuleInformation(struct ModuleInformation moduleInformation);
+    void printModuleInformation(struct ModuleInformation moduleInformation);    
 
-    void setPacket(TelemetryPacket updatedTxPacket);
+    LoRa_E32 e32ttl = LoRa_E32(PIN_TX, PIN_RX, PIN_AUX, PIN_M0, PIN_M1);
+
+    FlashChip * flashChip = new FlashChip();
 };

@@ -1,10 +1,11 @@
 #include <GroundStation/TelemetryBoard.h>
 
-TelemetryBoard::TelemetryBoard() {   
+TelemetryBoard::TelemetryBoard() {
 }
 
 bool TelemetryBoard::init() {
     e32ttl.begin();
+    flashChip->init();
 
     ResponseStructContainer c;
     c = e32ttl.getConfiguration();
@@ -16,7 +17,7 @@ bool TelemetryBoard::init() {
     config.CHAN = CHAN;
 
     config.SPED.airDataRate = 5;
-    config.SPED.uartBaudRate = 4;
+    config.SPED.uartBaudRate = 3;
     config.SPED.uartParity = 0;
 
     config.OPTION.fec = 1;
@@ -45,6 +46,7 @@ void TelemetryBoard::setPacket(TelemetryPacket updatedTxPacket) {
 void TelemetryBoard::onLoop(uint32_t timestamp) {
     switch(telemetryState) {
         case(TX): {
+            // flashChip->writeStruct(&txPacket, packetSize);
             ResponseStatus rs = e32ttl.sendFixedMessage(ADDH, ADDL, CHAN, &txPacket, packetSize);
 
             Serial.print("Packet Size: "); Serial.println((int) packetSize);
@@ -54,9 +56,11 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
         }
 
         case(RX): {
+            flashChip->writeStruct(&txPacket, packetSize);
             if(e32ttl.available() > 1) {
                 ResponseStructContainer rsc = e32ttl.receiveMessage(packetSize);
                 TelemetryPacket rxPacket = *(TelemetryPacket*) rsc.data;
+                
                 // Serial.print("Timestamp: "); Serial.println(rxPacket.timestamp);
 
                 rsc.close();

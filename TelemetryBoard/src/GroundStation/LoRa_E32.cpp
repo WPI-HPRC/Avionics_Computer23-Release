@@ -315,7 +315,7 @@ Status LoRa_E32::waitCompleteResponse(unsigned long timeout, unsigned int waitNo
 
 
 	// per data sheet control after aux goes high is 2ms so delay for at least that long)
-	this->managedDelay(20);
+	this->managedDelay(2);
 	DEBUG_PRINTLN(F("Complete!"));
 	return result;
 }
