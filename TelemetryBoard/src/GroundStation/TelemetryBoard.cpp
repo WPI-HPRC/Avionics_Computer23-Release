@@ -58,7 +58,7 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
 
             ResponseStatus rs = e32ttl.sendFixedMessage(0,3,4, &txPacket, packetSize);
 
-            Serial.print("Packet Size: "); Serial.println((int) sizeof(Message));
+            Serial.print("Packet Size: "); Serial.println((int) packetSize);
             Serial.print("Packet ("); Serial.print(timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
             break;
