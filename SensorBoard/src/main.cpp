@@ -67,13 +67,14 @@ void setup () {
 uint32_t prevTime = 0;
 void loop () {
   if (millis() - prevTime >= Loop_Period) {
+    // Process the sensorboard's IMU, Magnetometer, and Barometer
     prevTime = millis();
     sensorboard.readSensor();
     CANFDMessage frame;
     frame.id = 0x01;
     frame.ext = 0;
-    frame.len = 64;
-    memcpy(frame.data, &sensorboard.frame,64);
+    frame.len = 48;
+    memcpy(frame.data, &sensorboard.frame, sizeof(sensorboard.frame));
     const bool ok = can.tryToSend (frame);
     if (ok) {
       Serial.println("Sent");

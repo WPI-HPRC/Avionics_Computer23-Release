@@ -47,7 +47,7 @@ static uint32_t gReceivedCount = 0 ;
 
 void loop () {
   CANFDMessage message;
-  SensorboardFrame sensorboardFrame;
+  Inertial_Baro_Frame sensorboardFrame;
   if (ACAN_T4::can3.receiveFD (message)) {
     gReceivedCount += 1;
     Serial.print ("Received: ") ;
