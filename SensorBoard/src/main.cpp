@@ -74,7 +74,7 @@ void loop () {
     frame.id = 0x01;
     frame.ext = 0;
     frame.len = 48;
-    memcpy(frame.data, &sensorboard.frame, sizeof(sensorboard.frame));
+    memcpy(frame.data, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
     const bool ok = can.tryToSend (frame);
     if (ok) {
       Serial.println("Sent");

@@ -20,7 +20,7 @@ class Sensorboard{
 
     public:
     Sensorboard(){};
-    Inertial_Baro_Frame frame;
+    Inertial_Baro_Frame Inertial_Baro_frame;
     GPSFrame gpsFrame;
     /*
         @brief Sets up all the sensors
@@ -62,21 +62,21 @@ class Sensorboard{
         // Process the buffer and store the data in the frame, once the frame is updated set newFrame to true
 
         // Accelerometer
-        frame.X_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
-        frame.Y_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
-        frame.Z_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
+        Inertial_Baro_frame.X_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
+        Inertial_Baro_frame.Y_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
+        Inertial_Baro_frame.Z_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
 
 
         // Gyroscope
-        frame.X_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
-        frame.Y_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
-        frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
+        Inertial_Baro_frame.X_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
+        Inertial_Baro_frame.Y_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
+        Inertial_Baro_frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
 
         // Barometer
-        barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure,&frame.Temperature);
+        barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&Inertial_Baro_frame.Pressure,&Inertial_Baro_frame.Temperature);
         // barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure);
         // Magnetometer
-        mag.calculateCalibratedValues(MMC5983MA::process18BitResolution(Buffer[18],Buffer[19],Buffer[25],0),MMC5983MA::process18BitResolution(Buffer[20],Buffer[21],Buffer[25],1),MMC5983MA::process18BitResolution(Buffer[22],Buffer[23],Buffer[25],2),&frame.X_mag,&frame.Y_mag,&frame.Z_mag);
-        frame.time = millis();
+        mag.calculateCalibratedValues(MMC5983MA::process18BitResolution(Buffer[18],Buffer[19],Buffer[25],0),MMC5983MA::process18BitResolution(Buffer[20],Buffer[21],Buffer[25],1),MMC5983MA::process18BitResolution(Buffer[22],Buffer[23],Buffer[25],2),&Inertial_Baro_frame.X_mag,&Inertial_Baro_frame.Y_mag,&Inertial_Baro_frame.Z_mag);
+        Inertial_Baro_frame.time = millis();
     }
 };
