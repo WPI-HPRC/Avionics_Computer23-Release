@@ -43,7 +43,7 @@ class Sensorboard{
         Magnetometer: 7 bytes X: 2 bytes Y: 2 bytes Z: 2 bytes Extra Byte for 18 Bit Resolution for each axis
         Time: 4 bytes milliseconds since the program started
     */
-    void readSensor(){
+    void readInertialSensors(){
         // Store sensor data in buffer
         imu.readSensor(Buffer,0);
         barometer.readSensor(Buffer,12);

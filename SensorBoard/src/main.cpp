@@ -10,7 +10,7 @@ static const byte MCP2517_INT = 2 ; // INT output of MCP2517FD
 ACAN2517FD can (MCP2517_CS, SPI, MCP2517_INT); 
 Sensorboard sensorboard;
 
-static const uint32_t Loop_Frequency = 100; // Hz
+static const uint32_t Loop_Frequency = 200; // Hz
 static const uint32_t Loop_Period = 1000 / Loop_Frequency; // ms
 
 void setup () {
@@ -69,7 +69,7 @@ void loop () {
   if (millis() - prevTime >= Loop_Period) {
     // Process the sensorboard's IMU, Magnetometer, and Barometer
     prevTime = millis();
-    sensorboard.readSensor();
+    sensorboard.readInertialSensors();
     CANFDMessage frame;
     frame.id = 0x01;
     frame.ext = 0;
