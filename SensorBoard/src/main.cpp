@@ -1,10 +1,16 @@
 #include <ACAN2517FD.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <SensorBoardLibraries\Sensorboard.hpp>
+#include <Metro.h>
+#include "SensorBoardLibraries/SensorBoard.hpp"
+#include "SensorBoardConstants.h"
 
-static const byte MCP2517_CS  = 10 ; // CS input of MCP2517FD
-static const byte MCP2517_INT = 2 ; // INT output of MCP2517FD
+Metro timer = Metro(1000UL / LOOP_FREQUENCY); // Hz converted to ms
+int counter = 0; // counts how many times the loop runs
+int timestamp;
+
+static const byte MCP2517FD_CS = 10;
+static const byte MCP2517FD_INT = 2;
 
 // Intialize the CAN Controller and the Sensorboard
 ACAN2517FD can (MCP2517_CS, SPI, MCP2517_INT); 
@@ -63,22 +69,19 @@ void setup () {
   }
 }
 
+void loop() {
+if (timer.check() == 1){ // Timer
+    sensorboard.readSensor(); // Read sensors
+    
+    counter++;
+    timestamp = counter * (1000UL / LOOP_FREQUENCY);
 
-uint32_t prevTime = 0;
-void loop () {
-  if (millis() - prevTime >= Loop_Period) {
-    prevTime = millis();
-    sensorboard.readSensor();
-    CANFDMessage frame;
-    frame.id = 0x01;
-    frame.ext = 0;
-    frame.len = 64;
-    memcpy(frame.data, &sensorboard.frame,64);
-    const bool ok = can.tryToSend (frame);
-    if (ok) {
-      Serial.println("Sent");
-    }else{
-      Serial.println("Send failure");
+    CANFDMessage message; // Create CAN message
+    message.id = 0x0001U; // Set ID
+    message.ext = false; // Set extended ID
+    message.len = 48; // Set length
+    for (int i = 0; i < 48; i++) { // Set data
+      message.data[i] = sensorboard.getBuffer(i); // Get data from sensorboard
     }
   }
 

@@ -111,4 +111,5 @@
 //   return X(3,0);
 // }
 
+// using namespace Eigen;
 
