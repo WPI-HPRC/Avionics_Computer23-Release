@@ -73,33 +73,37 @@ bool timeout(uint32_t length)
     }
 }
 
-// uses updated accel value to determine if the rocket has launched
-// stores 10 most recent values and computes current avg
-boolean launchDetect()
-{
-    // accel value gets updated in sensor reading fcn
-    // add to cyclic buffer
-    transitionBuf[transitionBufInd] = sensorData.Z_accel;
-    // take running average value
-    float sum = 0.0;
-    for (int i = 0; i < 10; i++)
-    {
-        sum += transitionBuf[i];
-    }
-    sum = sum / 10.0;
-    transitionBufInd = (transitionBufInd + 1) % 10;
-    // compare running average value to defined threshold
-    if (sum > ACCEL_THRESHOLD)
-    {
-        for (int j = 0; j < 10; j++)
-        {
-            transitionBuf[j] = 0;
-        }
-        transitionBufInd = 0;
-        Serial.println("Launch detected!");
-        return true;
-    }
-    return false;
+//-----------------------------------------------------------------
+
+static uint32_t gBlinkDate = 0 ;
+static uint32_t gSendDate = 0 ;
+static uint32_t gSentCount = 0 ;
+static uint32_t gReceivedCount = 0 ;
+
+//-----------------------------------------------------------------
+
+void loop () {
+  CANFDMessage message;
+  Inertial_Baro_Frame sensorboardFrame;
+  if (ACAN_T4::can3.receiveFD (message)) {
+    gReceivedCount += 1;
+    Serial.print ("Received: ") ;
+    Serial.println (gReceivedCount) ;
+    char buffer [64] ;
+    memcpy (buffer, message.data, message.len) ;
+    memcpy (&sensorboardFrame, buffer, 64) ;
+    Serial.println("SensorboardFrame: ");
+    Serial.print ("  ");
+    Serial.print("accelerationX: ");
+    Serial.print(sensorboardFrame.X_accel);
+    Serial.print("  ");
+    Serial.print("accelerationY: ");
+    Serial.print(sensorboardFrame.Y_accel);
+    Serial.print("  ");
+    Serial.print("accelerationZ: ");
+    Serial.print(sensorboardFrame.Z_accel);
+  }
+
 }
 
 // detects if motor burnout has occurred (aka negative accel)

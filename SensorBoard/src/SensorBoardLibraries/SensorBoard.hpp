@@ -2,8 +2,7 @@
 #include <SensorBoardLibraries\Magnetometer\Magnetometer_SB.h>
 #include <SensorBoardLibraries\Barometer\Barometer_SB.h>
 #include "Config.h"
-#include "SensorboardFrame.hpp"
-#include "SensorBoardLibraries\GPS\SparkFun_u-blox_GNSS_v3.h"
+#include "Sensor_Frames.hpp"
 
 /*
     @author Samay Govani
@@ -15,13 +14,14 @@ class Sensorboard{
     MS5611 barometer = MS5611(Wire, BARO_I2C_ADDRESS); // Barometer
     ICM42688P imu = ICM42688P(Wire, IMU_I2C_ADDRESS); // IMU
     MMC5983MA mag = MMC5983MA(Wire, MAG_I2C_ADDRESS); // Magnetometer
-    SFE_UBLOX_GNSS gps; // GPS
+    // SFE_UBLOX_GNSS gps; // GPS
 
     uint8_t Buffer[29] = {0};
 
     public:
     Sensorboard(){};
-    SensorboardFrame frame;
+    Inertial_Baro_Frame Inertial_Baro_frame;
+    GPSFrame gpsFrame;
     /*
         @brief Sets up all the sensors
         @details Returns true if all sensors are setup correctly
@@ -30,8 +30,8 @@ class Sensorboard{
         if (!imu.setup()) return false;
         if (!barometer.setup()) return false;
         if (!mag.setup()) return false;
-        if (!gps.begin(Wire)) return false;
-        gps.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
+        // if (!gps.begin(Wire)) return false;
+        // gps.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
         return true;
     }
     
@@ -43,7 +43,7 @@ class Sensorboard{
         Magnetometer: 7 bytes X: 2 bytes Y: 2 bytes Z: 2 bytes Extra Byte for 18 Bit Resolution for each axis
         Time: 4 bytes milliseconds since the program started
     */
-    void readSensor(){
+    void readInertialSensors(){
         // Store sensor data in buffer
         imu.readSensor(Buffer,0);
         barometer.readSensor(Buffer,12);
@@ -62,36 +62,21 @@ class Sensorboard{
         // Process the buffer and store the data in the frame, once the frame is updated set newFrame to true
 
         // Accelerometer
-        frame.X_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
-        frame.Y_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
-        frame.Z_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
+        Inertial_Baro_frame.X_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
+        Inertial_Baro_frame.Y_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
+        Inertial_Baro_frame.Z_accel = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
 
 
         // Gyroscope
-        frame.X_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
-        frame.Y_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
-        frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
+        Inertial_Baro_frame.X_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
+        Inertial_Baro_frame.Y_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
+        Inertial_Baro_frame.Z_gyro = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
 
         // Barometer
-        // barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure,&frame.Temperature);
-        barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure);
+        barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&Inertial_Baro_frame.Pressure,&Inertial_Baro_frame.Temperature);
+        // barometer.calculatePressure(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&frame.Pressure);
         // Magnetometer
-        mag.calculateCalibratedValues(MMC5983MA::process18BitResolution(Buffer[18],Buffer[19],Buffer[25],0),MMC5983MA::process18BitResolution(Buffer[20],Buffer[21],Buffer[25],1),MMC5983MA::process18BitResolution(Buffer[22],Buffer[23],Buffer[25],2),&frame.X_mag,&frame.Y_mag,&frame.Z_mag);
-        // GPS
-        if(gps.getPVT() == true){
-            frame.Latitude = gps.getLatitude();
-            frame.Longitude = gps.getLongitude();
-            frame.N_Velocity = gps.getNedNorthVel();
-            frame.E_Velocity = gps.getNedEastVel();
-            frame.D_Velocity = gps.getNedDownVel();
-        }
-        else{
-            frame.Latitude = 0;
-            frame.Longitude = 0;
-            frame.N_Velocity = 0;
-            frame.E_Velocity = 0;
-            frame.D_Velocity = 0;
-        }
-        frame.time = millis();
+        mag.calculateCalibratedValues(MMC5983MA::process18BitResolution(Buffer[18],Buffer[19],Buffer[25],0),MMC5983MA::process18BitResolution(Buffer[20],Buffer[21],Buffer[25],1),MMC5983MA::process18BitResolution(Buffer[22],Buffer[23],Buffer[25],2),&Inertial_Baro_frame.X_mag,&Inertial_Baro_frame.Y_mag,&Inertial_Baro_frame.Z_mag);
+        Inertial_Baro_frame.time = millis();
     }
 };

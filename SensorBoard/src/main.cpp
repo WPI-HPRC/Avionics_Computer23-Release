@@ -16,7 +16,7 @@ static const byte MCP2517FD_INT = 2;
 ACAN2517FD can (MCP2517_CS, SPI, MCP2517_INT); 
 Sensorboard sensorboard;
 
-static const uint32_t Loop_Frequency = 100; // Hz
+static const uint32_t Loop_Frequency = 200; // Hz
 static const uint32_t Loop_Period = 1000 / Loop_Frequency; // ms
 
 void setup () {
@@ -69,19 +69,22 @@ void setup () {
   }
 }
 
-void loop() {
-if (timer.check() == 1){ // Timer
-    sensorboard.readSensor(); // Read sensors
-    
-    counter++;
-    timestamp = counter * (1000UL / LOOP_FREQUENCY);
-
-    CANFDMessage message; // Create CAN message
-    message.id = 0x0001U; // Set ID
-    message.ext = false; // Set extended ID
-    message.len = 48; // Set length
-    for (int i = 0; i < 48; i++) { // Set data
-      message.data[i] = sensorboard.getBuffer(i); // Get data from sensorboard
+uint32_t prevTime = 0;
+void loop () {
+  if (millis() - prevTime >= Loop_Period) {
+    // Process the sensorboard's IMU, Magnetometer, and Barometer
+    sensorboard.readInertialSensors();
+    CANFDMessage frame;
+    frame.id = 0x01;
+    frame.ext = 0;
+    frame.len = 48;
+    memcpy(frame.data, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
+    prevTime = millis();
+    const bool ok = can.tryToSend (frame);
+    if (ok) {
+      Serial.println("Sent");
+    }else{
+      Serial.println("Send failure");
     }
   }
 
