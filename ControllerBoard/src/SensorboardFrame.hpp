@@ -1,5 +1,5 @@
 #include <Arduino.h>
-struct SensorboardFrame
+struct Inertial_Baro_Frame
 {
     float X_accel;  // Acceleration in m/s^2
     float Y_accel; // Acceleration in m/s^2
