@@ -20,6 +20,11 @@ enum EstimatorState{
 class StateEstimator {
     private:
     public:
+
+        void updateBaro();
+        void updateAcc();
+        float updateVertical(float baroReading, float accelReading, float dt_MS);
+
         /*
             @brief Current state of the rocket
             State:
