@@ -4,7 +4,8 @@
 #include "Libraries/ACAN2517FD/ACAN2517FD.h"
 #include "ControllerBoardLibraries/Sensor_Frames.hpp"
 #include "ControllerBoardLibraries/TelemetryFrame.hpp"
-#include "ControllerBoardLibraries/Controller."
+#include "ControllerBoardLibraries/StateStruct.hpp"
+#include "Controller.h"
 #include "ControllerBoardLibraries/StateEstimator.h"
 
 // CAN Setup
@@ -38,6 +39,9 @@ GPSFrame gpsPacket;
 
 // Declaration for telemetry packet struct
 TelemetryFrame telemPacket;
+
+// Declaration for state estimate struct
+StateStruct stateStruct;
 
 // Variable declarations for measured values
 uint8_t vBatt;
@@ -262,7 +266,7 @@ void logData()
 }
 
 void doStateEstimation() {
-    stateEstimator.getState(altitude, ac_x, ac_y, ac_z);
+    stateEstimator.getState(altitude, sensorPacket.X_accel, sensorPacket.Y_accel, sensorPacket.Z_accel);
     vel_lat = stateStruct.vel_vert;
     vel_lat = stateStruct.vel_lat;
     vel_lat = stateStruct.vel_total;
@@ -414,7 +418,7 @@ void loop()
             // TODO: flesh this out more, need to clarify apogee detection
             if (apogeeDetect())
             {
-                abPCt = 0; // Retract airbrakes fully upon apogee detecetion
+                abPct = 0; // Retract airbrakes fully upon apogee detecetion
                 // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
                 // airbrakeServo.disable;
                 state_start = millis();
