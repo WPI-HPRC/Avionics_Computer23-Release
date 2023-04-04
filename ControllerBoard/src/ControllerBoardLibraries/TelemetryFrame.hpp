@@ -13,4 +13,7 @@ struct TelemetryFrame
     int16_t gy_x;       // Angular rotation rate about X-axis. Given in degrees/s. Scaled by 10.
     int16_t gy_y;       // Angular rotation rate about Y-axis. Given in degrees/s. Scaled by 10.
     int16_t gy_z;       // Angular rotation rate about Z-axis. Given in degrees/s. Scaled by 10.
+    int16_t vel_vert;   // Vertical velocity. Given in m/s. 
+    int16_t vel_lat;    // Vertical velocity. Given in m/s. 
+    int16_t vel_total;  // Vertical velocity. Given in m/s. 
 };
