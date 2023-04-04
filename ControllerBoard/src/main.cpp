@@ -5,6 +5,7 @@
 #include "ControllerBoardLibraries/Sensor_Frames.hpp"
 #include "ControllerBoardLibraries/TelemetryFrame.hpp"
 #include "ControllerBoardLibraries/Controller."
+#include "ControllerBoardLibraries/StateEstimator.h"
 
 // CAN Setup
 static const byte MCP2518FD_CS = 10;
@@ -13,6 +14,9 @@ ACAN2517FD can(MCP2518FD_CS, SPI, MCP2518FD_INT);
 
 // Airbrake controller class
 Controller controller;
+
+// State estimation class
+StateEstimator stateEstimator;
 
 // Main timer declarations
 Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
@@ -255,6 +259,13 @@ void retrieveCAN()
 void logData()
 {
     // TODO: Write data packet to flash chip
+}
+
+void doStateEstimation() {
+    stateEstimator.getState(altitude, ac_x, ac_y, ac_z);
+    vel_lat = stateStruct.vel_vert;
+    vel_lat = stateStruct.vel_lat;
+    vel_lat = stateStruct.vel_total;
 }
 
 void doAirbrakeControls() {
