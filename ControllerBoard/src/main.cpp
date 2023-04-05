@@ -24,8 +24,8 @@ Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 unsigned long state_start;                        // must be set to millis() when entering a new state
 
-Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL);   // 1 second timer to stay in STARTUP before moving to PRELAUNCH
-Metro boostTimer = Metro(BOOST_MIN_LENGTH);         // 3 second timer to ensure BOOST state is locked before possibility of state change
+Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
+Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
 
 // Declarations for state transition detection buffer
 int16_t transitionBuf[10];
@@ -54,10 +54,13 @@ int16_t posZ;
 int16_t velX;
 int16_t velY;
 int16_t velZ;
-int16_t vel_vert;   // temporary??
-int16_t vel_lat;    // temporary??
-int16_t vel_total;  // temporary??
+int16_t vel_vert;  // temporary??
+int16_t vel_lat;   // temporary??
+int16_t vel_total; // temporary??
 uint8_t abPct;
+
+int16_t sumDescentVel = 0;
+int16_t pollCount = 0;
 
 enum AvionicsState
 {
@@ -151,6 +154,7 @@ boolean motorBurnoutDetect()
     return false;
 }
 
+// TODO THIS REALLY NEEDS TO BE DONE
 boolean apogeeDetect()
 {
     // if descending, case = DESCENT
@@ -178,34 +182,36 @@ boolean landingDetect()
 }
 
 // Compute altitude in [m] from pressure in [mBar]
-float pressureToAltitude(float pressure_mBar) {
+float pressureToAltitude(float pressure_mBar)
+{
 
     // physical parameters for model
-    const float pb = 101325;    // [Pa] pressure at sea level
-    const float Tb = 288.15;    // [K] temperature at seal level
-    const float Lb = -0.0065;   // [K/m] standard temperature lapse rate
-    const float hb = 0;         // [m] height at bottom of atmospheric layer (sea level)
-    const float R = 8.31432;    // [N*m/mol*K] universal gas constant
-    const float g0 = 9.80665;   // [m/s^2] Earth standard gravity
-    const float M = 0.0289644;  // [kg/mol] molar mass of Earth's air
+    const float pb = 101325;   // [Pa] pressure at sea level
+    const float Tb = 288.15;   // [K] temperature at seal level
+    const float Lb = -0.0065;  // [K/m] standard temperature lapse rate
+    const float hb = 0;        // [m] height at bottom of atmospheric layer (sea level)
+    const float R = 8.31432;   // [N*m/mol*K] universal gas constant
+    const float g0 = 9.80665;  // [m/s^2] Earth standard gravity
+    const float M = 0.0289644; // [kg/mol] molar mass of Earth's air
 
     // convert pressure from [mBar] to [Pa]
-    float pressure_Pa = pressure_mBar*100;
+    float pressure_Pa = pressure_mBar * 100;
 
     // compute altitude from formula
-    return hb + (Tb/Lb) * (pow((pressure_Pa/pb), (-R * Lb / (g0 * M))) - 1);
+    return hb + (Tb / Lb) * (pow((pressure_Pa / pb), (-R * Lb / (g0 * M))) - 1);
 }
 
 // Construct the data packet
-void constructPacket() {
+void constructPacket()
+{
 
-    // TODO: When state estiation is completed, need to update this to include velocity, orientation, etc.
+    // TODO: When state estimation is completed, need to update this to include velocity, orientation, etc.
 
     // Timestamp
     telemPacket.timestamp = sensorPacket.time;
 
     // State
-    telemPacket.state = (uint8_t) avionicsState;
+    telemPacket.state = (uint8_t)avionicsState;
 
     // Altitude
     telemPacket.altitude = altitude;
@@ -214,25 +220,25 @@ void constructPacket() {
     telemPacket.temperature = 0;
 
     // Battery voltage
-    telemPacket.vBatt = (uint8_t) vBatt*20;
+    telemPacket.vBatt = (uint8_t)vBatt * 20;
 
     // Airbrake actuation percent
     telemPacket.abPct = abPct;
 
     // Acceleration (XYZ)
-    telemPacket.ac_x = (int16_t) sensorPacket.X_accel*100;
-    telemPacket.ac_y = (int16_t) sensorPacket.Y_accel*100;
-    telemPacket.ac_z = (int16_t) sensorPacket.Z_accel*100;
+    telemPacket.ac_x = (int16_t)sensorPacket.X_accel * 100;
+    telemPacket.ac_y = (int16_t)sensorPacket.Y_accel * 100;
+    telemPacket.ac_z = (int16_t)sensorPacket.Z_accel * 100;
 
     // Angular rate (XYZ)
-    telemPacket.gy_x = (int16_t) sensorPacket.X_gyro*10;
-    telemPacket.gy_y = (int16_t) sensorPacket.Y_gyro*10;
-    telemPacket.gy_z = (int16_t) sensorPacket.Z_gyro*10;
+    telemPacket.gy_x = (int16_t)sensorPacket.X_gyro * 10;
+    telemPacket.gy_y = (int16_t)sensorPacket.Y_gyro * 10;
+    telemPacket.gy_z = (int16_t)sensorPacket.Z_gyro * 10;
 
     // Velocity (vertical, lateral, total)
-    telemPacket.vel_vert = (int16_t) vel_vert;
-    telemPacket.vel_lat = (int16_t) vel_lat;
-    telemPacket.vel_total = (int16_t) vel_total;
+    telemPacket.vel_vert = (int16_t)vel_vert;
+    telemPacket.vel_lat = (int16_t)vel_lat;
+    telemPacket.vel_total = (int16_t)vel_total;
 }
 
 void retrieveCAN()
@@ -241,18 +247,21 @@ void retrieveCAN()
     CANFDMessage message;
 
     // Unpack data frame from sensor board
-    if (message.id == CAN_ID_SENSOR_DATA) {    
+    if (message.id == CAN_ID_SENSOR_DATA)
+    {
         memcpy(&sensorPacket, message.data, 48);
         altitude = pressureToAltitude(sensorPacket.Pressure);
     }
-    
+
     // Unpack GPS frame from sensor board
-    else if (message.id == CAN_ID_GPS) {
+    else if (message.id == CAN_ID_GPS)
+    {
         memcpy(&gpsPacket, message.data, 24);
     }
 
     // Unpack battery voltage from power board
-    else if (message.id == CAN_ID_VBATT) {
+    else if (message.id == CAN_ID_VBATT)
+    {
         vBatt = message.data[0];
     }
 
@@ -265,32 +274,39 @@ void logData()
     // TODO: Write data packet to flash chip
 }
 
-void doStateEstimation() {
+void doStateEstimation()
+{
     stateEstimator.getState(altitude, sensorPacket.X_accel, sensorPacket.Y_accel, sensorPacket.Z_accel);
     vel_lat = stateStruct.vel_vert;
     vel_lat = stateStruct.vel_lat;
     vel_lat = stateStruct.vel_total;
 }
 
-void doAirbrakeControls() {
+void doAirbrakeControls()
+{
     abPct = controller.calcAbPct(vel_vert, vel_lat, altitude);
 }
 
-void lowPowerMode() {
+void lowPowerMode()
+{
     // TODO: Do something. Probably want to send a state variable to all boards eventually.
 }
 
 // Send CAN frame with data packet
-void sendCAN() {
+void sendCAN()
+{
     CANFDMessage message;
     message.id = CAN_ID_DATA_PACKET;
     message.len = 24;
     memcpy(message.data, &telemPacket, 24);
-    const bool ok = can.tryToSend (message) ;
-    if (ok) { // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
-      // Serial.print ("Sent: ") ;
-    } else {
-      // Serial.print ("Send failure") ;
+    const bool ok = can.tryToSend(message);
+    if (ok)
+    {   // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
+        // Serial.print ("Sent: ") ;
+    }
+    else
+    {
+        // Serial.print ("Send failure") ;
     }
 }
 
@@ -394,6 +410,9 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
+            // if ((sensorPacket.Z_accel > 10 * 9.80665) || (TRIG)) {
+
+            // }
 
             // break;
         // case COAST_CONTINGENCY:
@@ -415,7 +434,6 @@ void loop()
 
             doAirbrakeControls();
 
-            // TODO: flesh this out more, need to clarify apogee detection
             if (apogeeDetect())
             {
                 abPct = 0; // Retract airbrakes fully upon apogee detecetion
@@ -437,8 +455,20 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
-                // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
+            // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
+            // if (TRIG) {
 
+            // }
+            if (sensorPacket.Z_accel > 10 * G)
+            {
+                if (timeout(13000))
+                {
+                    Serial.println("Abort triggered by acceleration greater than 10g's");
+                    state_start = millis();
+                    avionicsState = ABORT;
+                    break;
+                }
+            }
             break;
         case DROGUE_DEPLOY:
             // TODO: Check for nominal drogue descent rate, then move into DROGUE_DESCENT state
@@ -448,7 +478,8 @@ void loop()
 
             // ABORT Case
             // 10 second timeout
-            if (timeout(DROGUE_DEPLOY_TIMEOUT)) {
+            if (timeout(DROGUE_DEPLOY_TIMEOUT))
+            {
                 state_start = millis();
                 avionicsState = ABORT;
             }
@@ -470,8 +501,12 @@ void loop()
         //     break;
         case DROGUE_DESCENT:
             // detect altitude drop below 1500ft
-            // state_start = millis();
-            // avionicsState = MAIN_DEPLOY;
+            if (altitude < (1500 * METER_CONVERSION))
+            {
+                state_start = millis();
+                avionicsState = MAIN_DEPLOY;
+                break;
+            }
 
             // // 120 second contingency timeout
             // if (timeout(DROGUE_DESCENT_TIMEOUT)) {
@@ -484,12 +519,25 @@ void loop()
         case MAIN_DEPLOY:
             // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
             // Poll for a second?
-            // state_start = millis();
-            // avionicsState = MAIN_DESCENT;
+            if (!timeout(1000))
+            {
+                sumDescentVel += stateStruct.vel_vert;
+                pollCount += 1;
+            }
+            else
+            {
+                int16_t avgDescentRate = sumDescentVel / pollCount;
+                if (avgDescentRate >= DESCENT_THRESHOLD)
+                {
+                    state_start = millis();
+                    avionicsState = MAIN_DESCENT;
+                }
+            }
 
             // ABORT Case
             // 10 second timeout
-            if (timeout(MAIN_DEPLOY_TIMEOUT)) {
+            if (timeout(MAIN_DEPLOY_TIMEOUT))
+            {
                 state_start = millis();
                 avionicsState = ABORT;
             }
@@ -535,6 +583,7 @@ void loop()
         case ABORT:
             // jump to here if anything goes terribly wrong (but obv it won't)
             // retract airbrakes
+            abPct = 0;
             // stop all other processes
             // Start sending high-fidelity data backwards in time from abort trigger to launch from flash
             break;
