@@ -12,7 +12,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 
 #define FREQUENCY_868
 #define ACTIVATE_SOFTWARE_SERIAL

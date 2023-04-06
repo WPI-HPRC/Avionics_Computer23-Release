@@ -56,12 +56,11 @@ void TelemetryBoard::onLoop(uint32_t timestamp) {
         }
 
         case(RX): {
-            flashChip->writeStruct(&txPacket, packetSize);
             if(e32ttl.available() > 1) {
                 ResponseStructContainer rsc = e32ttl.receiveMessage(packetSize);
                 TelemetryPacket rxPacket = *(TelemetryPacket*) rsc.data;
                 
-                // Serial.print("Timestamp: "); Serial.println(rxPacket.timestamp);
+                Serial.print("Timestamp: "); Serial.println(rxPacket.timestamp);
 
                 rsc.close();
             }

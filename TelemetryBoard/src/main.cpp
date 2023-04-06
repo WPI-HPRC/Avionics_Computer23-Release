@@ -28,32 +28,19 @@ void loop() {
         timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
 
         if(telemBoard->getState() == TX) {
-          // TelemetryPacket txPacket;
-          // txPacket.timestamp = timestamp;
-          // txPacket.state = 0;
-          // txPacket.abPct = 0;
-          // txPacket.altitude = 100;
-          // txPacket.acX = 10;
-          // txPacket.acY = 10;
-          // txPacket.acZ = 10;
-          // txPacket.gyX = 10;
-          // txPacket.gyY = 10;
-          // txPacket.gyZ = 10;
-          // telemBoard->setPacket(txPacket);
+          TelemetryPacket txPacket;
+          txPacket.timestamp = timestamp;
+          txPacket.state = 0;
+          txPacket.abPct = 0;
+          txPacket.altitude = 100;
+          txPacket.acX = 10;
+          txPacket.acY = 10;
+          txPacket.acZ = 10;
+          txPacket.gyX = 10;
+          txPacket.gyY = 10;
+          txPacket.gyZ = 10;
+          telemBoard->setPacket(txPacket);
         }
-
-        TelemetryPacket txPacket;
-        txPacket.timestamp = timestamp;
-        txPacket.state = 0;
-        txPacket.abPct = 0;
-        txPacket.altitude = 100;
-        txPacket.acX = 10;
-        txPacket.acY = 10;
-        txPacket.acZ = 10;
-        txPacket.gyX = 10;
-        txPacket.gyY = 10;
-        txPacket.gyZ = 10;
-        telemBoard->setPacket(txPacket);
 
         telemBoard->onLoop(timestamp);
         timer.reset();
