@@ -4,7 +4,6 @@
 #include "Libraries/ACAN2517FD/ACAN2517FD.h"
 #include "ControllerBoardLibraries/Sensor_Frames.hpp"
 #include "ControllerBoardLibraries/TelemetryFrame.hpp"
-#include "ControllerBoardLibraries/StateStruct.hpp"
 #include "Controller.h"
 #include "ControllerBoardLibraries/StateEstimator.h"
 
@@ -211,7 +210,7 @@ void constructPacket() {
     telemPacket.altitude = altitude;
 
     // Temperature
-    telemPacket.temperature = 0;
+    telemPacket.temperature = sensorPacket.Temperature;
 
     // Battery voltage
     telemPacket.vBatt = (uint8_t) vBatt*20;
@@ -235,6 +234,7 @@ void constructPacket() {
     telemPacket.vel_total = (int16_t) vel_total;
 }
 
+// Process incoming messages from the CAN bus
 void retrieveCAN()
 {
     // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
@@ -260,22 +260,27 @@ void retrieveCAN()
     constructPacket();
 }
 
+// Write data (telemPacket) to flash chip
 void logData()
 {
     // TODO: Write data packet to flash chip
 }
 
+// Perform state estimation for the launch vehicle
+//  Inputs: raw sensor data (currently altitude + XYZ acceleration)
+//  Output: stateStruct (currently vertical, lateral, and total veloctity)
 void doStateEstimation() {
-    stateEstimator.getState(altitude, sensorPacket.X_accel, sensorPacket.Y_accel, sensorPacket.Z_accel);
-    vel_lat = stateStruct.vel_vert;
-    vel_lat = stateStruct.vel_lat;
-    vel_lat = stateStruct.vel_total;
+    stateStruct = stateEstimator.getState(altitude, sensorPacket.X_accel, sensorPacket.Y_accel, sensorPacket.Z_accel);
 }
 
+// Compute airbrake actuation percent from controller.
+//      Inputs: vertical velocity, lateral velocity, altitude
+//      Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls() {
-    abPct = controller.calcAbPct(vel_vert, vel_lat, altitude);
+    abPct = controller.calcAbPct(stateStruct.vel_vert, stateStruct.vel_lat, altitude);
 }
 
+// Send a message to place devices into low power mode and possibly decrease datalogging rate
 void lowPowerMode() {
     // TODO: Do something. Probably want to send a state variable to all boards eventually.
 }
@@ -294,6 +299,7 @@ void sendCAN() {
     }
 }
 
+// Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
     // Communications setup
@@ -341,6 +347,7 @@ void setup()
     }
 }
 
+// Built-in Arduino loop function. Executes main control loop at a specified frequency.
 void loop()
 {
     // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
