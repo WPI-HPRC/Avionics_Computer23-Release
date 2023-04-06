@@ -4,10 +4,35 @@
     @brief StateEstimator class for the controller board
     @author Samay Govani
 */
-enum EstimatorState{
-    PRELAUNCH,
-    POSTLAUNCH
+
+struct stateStruct{
+    float vel_vert = 0; // vertical velocity
+    float vel_lat = 0; // lateral velocity
+    float vel_total = 0; // total velocity
 };
+
+
+
+class StateEstimator {
+    private:
+    public:
+
+        const float timeStep = 0.01;
+        float prevAltitude = 0;
+        stateStruct state;
+
+        stateStruct getState(float alt, float ac_X, float ac_Y, float ac_Z);
+
+};
+
+
+
+// =================================================================================================
+
+// enum EstimatorState{
+//     PRELAUNCH,
+//     POSTLAUNCH
+// };
 
 // class StateEstimator {
 //     public:
@@ -17,13 +42,6 @@ enum EstimatorState{
 
 // using namespace Eigen;
 
-class StateEstimator {
-    private:
-    public:
-
-        void updateBaro();
-        void updateAcc();
-        float updateVertical(float baroReading, float accelReading, float dt_MS);
 
         /*
             @brief Current state of the rocket
@@ -74,4 +92,3 @@ class StateEstimator {
 // //         */
 // //         void updateState_PreLaunch(float Accel_X, float Accel_Y, float Accel_Z, float Gyro_X, float Gyro_Y, float Gyro_Z, float Mag_X, float Mag_Y, float Mag_Z, float Baro_Pressure, float dt_MS);
 // //         void updateState_PostLaunch(float Accel_X, float Accel_Y, float Accel_Z, float Gyro_X, float Gyro_Y, float Gyro_Z, float Mag_X, float Mag_Y, float Mag_Z, float Baro_Pressure, float dt_MS);
-};
