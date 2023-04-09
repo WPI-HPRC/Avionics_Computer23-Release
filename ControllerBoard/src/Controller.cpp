@@ -3,108 +3,191 @@
 
 Controller::Controller() {
     // constructor things
-
-
 }
 
 // takes in altitude, vertical and lateral velocity
 // returns airbrake extension in a range from 0-100
-uint8_t Controller::calcAbPct(float alt, int8_t velZ, int8_t velLat) {
+uint8_t Controller::calcAbPct(float alt, int8_t velLat, int8_t velVert) {
+    
+    // calculate dynamic pressure and drag force
+    float dynamicPressure = pressure_at_altitude(pZero,alt,tZero);
+    float dragForce = targetDragCoefficient(alt,velLat,velVert,dt,pZero,0,tZero);
 
-    float a = -0.928228913;
-    float b = 3.958695493;
-    float c = -2.467757547;
-    float d = 0.002306584;
-    float e = -3.71e-9;
-    float f = 0.001035235;
+    float a = 0.709260886206603;
+    float b = -0.000743412395632551;
+    float c = 0.244154597256709;
+    float d = 9.04473193768848e-09;
+    float e = -0.00404179774141117;
+    float f = 0.0000097143566652642;
     // where TotalCD = rocketCD + a + b*airbrake_extension + c*airbrake_extension^2
-    float dynamicPressure = 0; // write fcn for this
-    float dragForce = 0; // write fcn for this
 
-    // A = c;
-    float B = b+f*dynamicPressure;
-    float C = a+d*dynamicPressure+e*(dynamicPressure*dynamicPressure)-dragForce;
-
-    float extension = (-B+sqrt((B*B)-4*c*C))/(2*c);
-
-    // uint8_t extensionPct = extension * 100 / length;
-    uint8_t extensionPct = 0;
-
+    float extension = a + b*dragForce + c*dynamicPressure + d*(dragForce*dragForce) + (e*dynamicPressure*dynamicPressure) + f*dragForce*dynamicPressure;
+    ext = extension;
+    cd = dragForce;
+    uint8_t extensionPct = round(extension/length * 100);
+    
     return extensionPct;
 }
 
-// takes in state, dt, targetApogee, m, A, currentExtension, currentCD, allowableError, P, altZero, timeZero
-float Controller::targetDragCoefficient() {    
-    // testCD = currentCD; // data type? lol 
-    // this one here'll be a doozy, gotta find a library for that
-    // apogee = rk4(state,dt,m,A,currentExtension,testCD,P,alt_0,T_0);
+float Controller::targetDragCoefficient(float alt, int8_t velLat, int8_t velVert, int8_t dt, float pZero, float altZero, float tZero) {    
+    float testCD = cd; // data type? lol 
+    // calculate what our predicted apogee will be rn
+    float apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
 
-    // float error = abs(1-(apogee/10000));
-    // bestCD = testCD;
-    // lowestError = error;
-
-    // while(error > allowableError)
-    //     if(testCD ~= bestCD)
-    //             testCD = testCD + 0.5*(testCD-bestCD);
-    //     else
-    //         if(apogee < targetApogee)
-    //             testCD = 1.05*testCD;
-    //         else
-    //             testCD = 0.95*testCD;
-    //     apogee = rk4(state,dt,m,A,currentExtension,testCD,P,alt_0,T_0);
-    //     error = abs(1-(apogee/targetApogee));
-
-    //     if(error < lowestError)
-    //         bestCD = testCD;
-    //         lowestError = error;
-    // targetCd = testCD;
-    return 0.0
-}
-
-float Controller:apogee() {
-// function apogee = rk4(x,dt,m,A,ext,cd,P,alt_0,T_0)
+    float error = abs(1-(apogee/10000));
+    bool oppSide = false;
+    float lastCD = testCD;
+    float lastApogee = apogee;
+    float lowestError = error;
+    float max = 1;
+    float min = 1;
+    int8_t j = 1;
+    int8_t maxIterations = 5; // i want this as high as possible without fucking up the state estimate
+    bool currPos = false;
+    bool prevPos = false;
     
-//     xCurr = x;
-//     while(xCurr(2) < 0)
-//         k1 = dt*rocketDynamics(xCurr,m,A,ext,cd,P,alt_0,T_0);
-//         k2 = dt*rocketDynamics(xCurr + (k1/2),m,A,ext,cd,P,alt_0,T_0);
-//         k3 = dt*rocketDynamics(xCurr + (k2/2),m,A,ext,cd,P,alt_0,T_0);
-//         k4 = dt*rocketDynamics(xCurr + k3,m,A,ext,cd,P,alt_0,T_0);
+    while(error > allowableError && j <= maxIterations) {
+        if(oppSide == false) {
+            if (apogee-targetApogee > 0) { currPos = true; }
+            else { currPos = false; }
+            if (lastApogee-targetApogee > 0) { prevPos = true; }
+            else { prevPos = false; }
+
+            // either currPos or prevPos can be positive but not both
+            if(currPos ^ prevPos) {
+                oppSide = true;
+                if(apogee-targetApogee>0) {
+                    max = testCD;
+                    min = lastCD;
+                } else {
+                    max = lastCD;
+                    min = testCD;
+                }
+            } else if(apogee > targetApogee) {
+                testCD = 1.05*testCD;
+            } else {
+                testCD = 0.95*testCD;
+            }
+            lastApogee = apogee;
+        }
+        if(oppSide) {
+            if(apogee-targetApogee>0) {
+                max = testCD;
+            } else {
+                min = testCD;
+            }
+
+            testCD = min + 0.5*(max-min);
+        }
+
+        apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
+        error = abs(1-(apogee/targetApogee));
+    }
+    return testCD;
+
+}
+
+float Controller::rk4(float alt, int8_t velLat, int8_t velVert, int8_t dt, float currCD, float pZero, float altZero, float tZero) {    
+    // init k1,k2,k3,k4 as arrays
+    float xCurr[3] = {alt,velLat,velVert}; // probably not right
+    float w = 0.4826; 
+    float extMax = 0.037389; 
+    float k1[3], k2[3], k3[3], k4[3];
+    float A = area + 4*ext*extMax*w; // assume this is *
+    float P = pressure_at_altitude(pZero,alt,tZero);
+    float rho = density(alt,tZero,P);
+    float v = sqrt((velLat*velLat)+(velVert+velVert));
+
+    while(xCurr[1] < 0) {
+        k1[0] = (float) velLat * dt;
+        k1[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
+        k1[2] = dt*calcVertAcc(velVert, v, currCD, rho, A);
+
+        velLat = velLat + (k1[1]/2);
+        v = sqrt((velLat*velLat)+(velVert+velVert));
+        k2[0] = (float) velLat * dt + (k1[1]/2);
+        k2[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
+        k2[2] = dt*calcVertAcc(velVert + (k1[2]/2), v, currCD, rho, A);
+
+        velLat = velLat + (k2[1]/2);
+        v = sqrt((velLat*velLat)+(velVert+velVert));
+        k3[0] = (float) velLat * dt + (k2[1]/2);
+        k3[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
+        k3[2] = dt*calcVertAcc(velVert + (k2[2]/2), v, currCD, rho, A);
+
+        velLat = velLat + k3[1];
+        v = sqrt((velLat*velLat)+(velVert+velVert));
+        k4[0] = (float) velLat * dt + k3[1];
+        k4[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
+        k4[2] = dt*calcVertAcc(velVert + k3[2], v, currCD, rho, A);
         
-//         xCurr = xCurr + ((1/6)*(k1 + 2*k2 + 2*k3 + k4));
-//     end
-//     apogee = xCurr(1);
-    return 0.0
+        xCurr[0] = xCurr[0] + ((1/6)*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]));
+        xCurr[1] = xCurr[1] + ((1/6)*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]));
+        xCurr[2] = xCurr[2] + ((1/6)*(k1[2] + 2*k2[2] + 2*k3[2] + k4[2]));
+    }
+    float apogee = xCurr[0];
+    return apogee;
 }
 
-// def not void and not a number but some other secret third thing (a fucking vector)
-void rocketDynamics() {
-// function xDot = rocketDynamics(x,m,A,ext,cd,P,alt_0,T_0) % add P, alt_0, T_0
-//     alt = x(1); vx = x(2); vy = x(3);
-//     g = -9.8; w = 0.4826; extMax = 0.037389; 
-
-//     A = A + 4*ext*extMaxw; %ext is defined from 0-1
-//     rho = density(alt,alt_0,P,T_0);
-//     v = [vx,vy];
-
-//     D = 0.5*cd*rho*A.*v.^2;
-//     xAcc = -g-D(1)/m;
-//     yAcc = -D(2)/m;
-
-//     xVel = vx;
-//     xDot = [xVel,xAcc,yAcc];
+float Controller::calcLatAcc(float velLat, float v, float currCD, float rho, float A) {
+    float Dx = 0.5*currCD*rho*A*v*v;
+    float xAcc = -g-(Dx*velLat/v)/m;
+    return xAcc;
 }
 
-float density(float h, float hZero, float p, float timeZero) {
+float Controller::calcVertAcc(float velVert, float v, float currCD, float rho, float A) {
+    float Dy = 0.5*currCD*rho*A*v*v;
+    float yAcc = -(Dy*velVert/v)/m;
+    return yAcc;
+}
+
+// calculates density based off temperature
+float Controller::density(float alt, float tZero, float p) {
     float r = 8.314;
     float m = 0.02896;
-    float temp = temperature_at_altitude(timeZero,h,hZero);
+    float temp = temperature_at_altitude(tZero,alt);
     float rho = (p*m)/(r*temp);
     return rho;
 }
 
-float temperature_at_altitude(float timeZero, float h, float hZero) {
-    float l = -6.5;
-    float temp = timeZero - (l*(h-hZero));
+// calculates temperature, takes in original temperature, current height, and initial height
+float Controller::temperature_at_altitude(float tZero, float alt) {
+    float l = -6.5/1000;
+    float temp = tZero - l*alt;
     return temp;
 }
+
+// calculates dynamic pressure
+// takes in P, height, initial temperature
+float Controller::pressure_at_altitude(float P, float h, float T) {
+    float R = 8.314; 
+    float M = 0.02896;
+    P = P*exp((-g*M*h)/(R*T));
+}
+
+// sets initial pressure and temperature
+float Controller::setInitPressureTemp(float initP, float initT) {
+    pZero = initP;
+    tZero = initT;
+}
+
+/*
+coef_drag_or = RAW_DATA_FULL{DATA_START:DATA_END, COL_VERT_ACCEL}; % nice, same as the velocity vector
+
+launch_alt = 0;
+rocketMass = 24.829;
+r_specific = 287.05;
+cel_to_kelvin = 273.15;
+
+accel_drag = accel + grav;
+temperature = temperature + cel_to_kelvin;
+pressure = pressure .* 100;
+
+%%
+
+rho = pressure ./ (r_specific .* temperature); %3.31e-9 * altitude.^2 - 1.14e-4.*altitude + 1.22;
+
+coef_drag = (2 * rocketMass .* accel_drag) ./ (rho * crossSectionalArea .* velocity.^2)
+
+
+*/

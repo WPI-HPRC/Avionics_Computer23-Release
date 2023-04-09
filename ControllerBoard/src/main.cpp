@@ -277,7 +277,7 @@ void doStateEstimation() {
 //      Inputs: vertical velocity, lateral velocity, altitude
 //      Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls() {
-    abPct = controller.calcAbPct(stateStruct.vel_vert, stateStruct.vel_lat, altitude);
+    abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
 }
 
 // Send a message to place devices into low power mode and possibly decrease datalogging rate
