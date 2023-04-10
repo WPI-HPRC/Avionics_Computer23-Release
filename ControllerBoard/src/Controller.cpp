@@ -34,57 +34,31 @@ float Controller::targetDragCoefficient(float alt, int8_t velLat, int8_t velVert
     // calculate what our predicted apogee will be rn
     float apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
 
-    float error = abs(1-(apogee/10000));
+    float error = abs(1-((targetApogee-alt)/(apogee-alt)));
+    float delta = 0.00001; 
     bool oppSide = false;
     float lastCD = testCD;
     float lastApogee = apogee;
     float lowestError = error;
-    float max = 1;
-    float min = 1;
-    int8_t j = 1;
-    int8_t maxIterations = 5; // i want this as high as possible without fucking up the state estimate
-    bool currPos = false;
-    bool prevPos = false;
+
+    int8_t i = 1;
+    int8_t maxIterations = 4;
+    float apogeeDelta;
     
-    while(error > allowableError && j <= maxIterations) {
-        if(oppSide == false) {
-            if (apogee-targetApogee > 0) { currPos = true; }
-            else { currPos = false; }
-            if (lastApogee-targetApogee > 0) { prevPos = true; }
-            else { prevPos = false; }
+    while(error > allowableError && i < maxIterations) {
+        apogeeDelta = rk4(alt,velLat,velVert,dt,testCD+delta,pZero,altZero,tZero);
+        testCD = testCD - (((targetApogee-apogee)*delta)/(apogee-apogeeDelta)); 
 
-            // either currPos or prevPos can be positive but not both
-            if(currPos ^ prevPos) {
-                oppSide = true;
-                if(apogee-targetApogee>0) {
-                    max = testCD;
-                    min = lastCD;
-                } else {
-                    max = lastCD;
-                    min = testCD;
-                }
-            } else if(apogee > targetApogee) {
-                testCD = 1.05*testCD;
-            } else {
-                testCD = 0.95*testCD;
-            }
-            lastApogee = apogee;
-        }
-        if(oppSide) {
-            if(apogee-targetApogee>0) {
-                max = testCD;
-            } else {
-                min = testCD;
-            }
-
-            testCD = min + 0.5*(max-min);
+        if(testCD < 0) {
+            testCD = 0;
+            break;
         }
 
         apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
-        error = abs(1-(apogee/targetApogee));
+        error = abs(1-((targetApogee-alt)/(apogee-alt))); 
+        i = i+1;
     }
     return testCD;
-
 }
 
 float Controller::rk4(float alt, int8_t velLat, int8_t velVert, int8_t dt, float currCD, float pZero, float altZero, float tZero) {    
@@ -143,16 +117,13 @@ float Controller::calcVertAcc(float velVert, float v, float currCD, float rho, f
 
 // calculates density based off temperature
 float Controller::density(float alt, float tZero, float p) {
-    float r = 8.314;
-    float m = 0.02896;
     float temp = temperature_at_altitude(tZero,alt);
-    float rho = (p*m)/(r*temp);
+    float rho = (p*M)/(R*temp);
     return rho;
 }
 
 // calculates temperature, takes in original temperature, current height, and initial height
 float Controller::temperature_at_altitude(float tZero, float alt) {
-    float l = -6.5/1000;
     float temp = tZero - l*alt;
     return temp;
 }
@@ -160,8 +131,6 @@ float Controller::temperature_at_altitude(float tZero, float alt) {
 // calculates dynamic pressure
 // takes in P, height, initial temperature
 float Controller::pressure_at_altitude(float P, float h, float T) {
-    float R = 8.314; 
-    float M = 0.02896;
     P = P*exp((-g*M*h)/(R*T));
 }
 

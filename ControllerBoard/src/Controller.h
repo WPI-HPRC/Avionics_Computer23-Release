@@ -25,6 +25,9 @@ class Controller
         float g = 9.8;
         float m = 24.829; // mass of the rocket
         float dt = 0.001; // 10 milliseconds
+        float R = 8.314; 
+        float M = 0.02896;
+        float l = -6.5/1000;
 
         float ext = 0; // current airbrakes extension
         float cd = 0; // current coeff of drag
