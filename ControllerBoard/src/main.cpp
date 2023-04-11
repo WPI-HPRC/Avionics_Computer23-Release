@@ -1,16 +1,10 @@
 #include <Arduino.h>
 #include "Libraries/MetroTimer/Metro.h"
 #include "ControllerBoardConstants.h"
-#include "Libraries/ACAN2517FD/ACAN2517FD.h"
 #include "ControllerBoardLibraries/Sensor_Frames.hpp"
 #include "ControllerBoardLibraries/TelemetryFrame.hpp"
 #include "Controller.h"
 #include "ControllerBoardLibraries/StateEstimator.h"
-
-// CAN Setup
-static const byte MCP2518FD_CS = 10;
-static const byte MCP2518FD_INT = 2;
-ACAN2517FD can(MCP2518FD_CS, SPI, MCP2518FD_INT);
 
 // Airbrake controller class
 Controller controller;
@@ -242,29 +236,13 @@ void constructPacket()
 }
 
 // Process incoming messages from the CAN bus
-void retrieveCAN()
+void readSensors()
 {
-    // TODO: Read messages while CAN available. Write if statements to unpack data dependent upon message id.
-    CANFDMessage message;
 
-    // Unpack data frame from sensor board
-    if (message.id == CAN_ID_SENSOR_DATA)
-    {
-        memcpy(&sensorPacket, message.data, 48);
-        altitude = pressureToAltitude(sensorPacket.Pressure);
-    }
+    // Construct sensorPacket struct with raw data from inertial sensors + barometer
+    altitude = pressureToAltitude(sensorPacket.Pressure);
 
-    // Unpack GPS frame from sensor board
-    else if (message.id == CAN_ID_GPS)
-    {
-        memcpy(&gpsPacket, message.data, 24);
-    }
-
-    // Unpack battery voltage from power board
-    else if (message.id == CAN_ID_VBATT)
-    {
-        vBatt = message.data[0];
-    }
+    // Construct gpsPacket struct with data from GPS
 
     // Construct data packet
     constructPacket();
@@ -285,8 +263,8 @@ void doStateEstimation()
 }
 
 // Compute airbrake actuation percent from controller.
-//      Inputs: vertical velocity, lateral velocity, altitude
-//      Output: airbrake actuation level as a percent from 0 to 100
+//  Inputs: vertical velocity, lateral velocity, altitude
+//  Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls()
 {
     abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
@@ -298,70 +276,16 @@ void lowPowerMode()
     // TODO: Do something. Probably want to send a state variable to all boards eventually.
 }
 
-// Send CAN frame with data packet
-void sendCAN()
-{
-    CANFDMessage message;
-    message.id = CAN_ID_DATA_PACKET;
-    message.len = 24;
-    memcpy(message.data, &telemPacket, 24);
-    const bool ok = can.tryToSend(message);
-    if (ok)
-    { // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
-      // Serial.print ("Sent: ") ;
-    }
-    else
-    {
-        // Serial.print ("Send failure") ;
-    }
-}
-
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
     // Communications setup
     Serial.begin(9600);
-    SPI.begin();
+
+    // TODO: Write a function to get initial pressure/altitude on pad?
 
     // TODO: Write a function to send a command to fully retract airbrakes, wait 1 second, then send servo disable command
 
-    // CAN Setup
-    ACAN2517FDSettings settings(
-        ACAN2517FDSettings::OSC_20MHz, // oscillator
-        500UL * 1000UL,                // arbitration bit rate
-        DataBitRateFactor::x10         // bit rate factor
-    );
-    settings.mRequestedMode = ACAN2517FDSettings::InternalLoopBack;
-    settings.mDriverTransmitFIFOSize = 3;
-    settings.mDriverReceiveFIFOSize = 10;
-
-    const uint32_t errorCode = can.begin(settings, []
-                                         { can.isr(); });
-    if (errorCode == 0)
-    {
-        Serial.print("Bit Rate prescaler: ");
-        Serial.println(settings.mBitRatePrescaler);
-        Serial.print("Arbitration Phase segment 1: ");
-        Serial.println(settings.mArbitrationPhaseSegment1);
-        Serial.print("Arbitration Phase segment 2: ");
-        Serial.println(settings.mArbitrationPhaseSegment2);
-        Serial.print("Arbitration SJW:");
-        Serial.println(settings.mArbitrationSJW);
-        Serial.print("Actual Arbitration Bit Rate: ");
-        Serial.print(settings.actualArbitrationBitRate());
-        Serial.println(" bit/s");
-        Serial.print("Exact Arbitration Bit Rate ? ");
-        Serial.println(settings.exactArbitrationBitRate() ? "yes" : "no");
-        Serial.print("Arbitration Sample point: ");
-        Serial.print(settings.arbitrationSamplePointFromBitStart());
-        Serial.println("%");
-        Serial.println("CAN setup success");
-    }
-    else
-    {
-        Serial.print("Configuration error 0x");
-        Serial.println(errorCode, HEX);
-    }
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -599,12 +523,6 @@ void loop()
         default:
             break;
         }
-
-        // Receive inbound CAN frames
-        retrieveCAN();
-
-        // Send outbound CAN frames
-        sendCAN();
 
         counter++;
         timer.reset();
