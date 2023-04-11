@@ -30,13 +30,13 @@ Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BO
 int16_t transitionBuf[10];
 uint8_t transitionBufInd = 0;
 
-// Declaration for sensor data struct
+// Declaration for sensor data struct, measured values
 SensorFrame sensorPacket;
 
 // Declaration for GPS data struct
 GPSFrame gpsPacket;
 
-// Declaration for telemetry packet struct
+// Declaration for telemetry packet struct, calculated values
 TelemetryFrame telemPacket;
 
 // Declaration for state estimate struct
@@ -200,7 +200,7 @@ float pressureToAltitude(float pressure_mBar)
     return hb + (Tb / Lb) * (pow((pressure_Pa / pb), (-R * Lb / (g0 * M))) - 1);
 }
 
-// Construct the data packet
+// Construct the telemetry data packet
 void constructPacket()
 {
 
@@ -228,6 +228,7 @@ void constructPacket()
     telemPacket.ac_x = (int16_t)sensorPacket.X_accel * 100;
     telemPacket.ac_y = (int16_t)sensorPacket.Y_accel * 100;
     telemPacket.ac_z = (int16_t)sensorPacket.Z_accel * 100;
+    telemPacket.ac_total = (int16_t)sqrt((sensorPacket.X_accel * sensorPacket.X_accel + sensorPacket.Y_accel * sensorPacket.Y_accel + sensorPacket.Z_accel * sensorPacket.Z_accel));
 
     // Angular rate (XYZ)
     telemPacket.gy_x = (int16_t)sensorPacket.X_gyro * 10;
@@ -278,19 +279,22 @@ void logData()
 // Perform state estimation for the launch vehicle
 //  Inputs: raw sensor data (currently altitude + XYZ acceleration)
 //  Output: stateStruct (currently vertical, lateral, and total veloctity)
-void doStateEstimation() {
+void doStateEstimation()
+{
     stateStruct = stateEstimator.getState(altitude, sensorPacket.X_accel, sensorPacket.Y_accel, sensorPacket.Z_accel);
 }
 
 // Compute airbrake actuation percent from controller.
 //      Inputs: vertical velocity, lateral velocity, altitude
 //      Output: airbrake actuation level as a percent from 0 to 100
-void doAirbrakeControls() {
+void doAirbrakeControls()
+{
     abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
 }
 
 // Send a message to place devices into low power mode and possibly decrease datalogging rate
-void lowPowerMode() {
+void lowPowerMode()
+{
     // TODO: Do something. Probably want to send a state variable to all boards eventually.
 }
 
@@ -303,8 +307,8 @@ void sendCAN()
     memcpy(message.data, &telemPacket, 24);
     const bool ok = can.tryToSend(message);
     if (ok)
-    {   // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
-        // Serial.print ("Sent: ") ;
+    { // TODO: Print statements here are for debugging... could actually handle a failure somehow if we wanted to
+      // Serial.print ("Sent: ") ;
     }
     else
     {
@@ -414,11 +418,11 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
-            // if ((sensorPacket.Z_accel > 10 * 9.80665) || (TRIG)) {
+            // if ((telemPacket.ac_total > (10 * G)) || (TRIG)) {
 
             // }
 
-            // break;
+            break;
         // case COAST_CONTINGENCY:
         //     // TODO Check if Coast appears normal, then move into COAST phase
         //     // state_start = millis();
