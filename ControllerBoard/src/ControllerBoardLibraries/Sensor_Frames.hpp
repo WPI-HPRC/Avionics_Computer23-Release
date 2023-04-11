@@ -1,5 +1,5 @@
 #include <Arduino.h>
-struct SensorboardFrame
+struct SensorFrame
 {
     float X_accel;  // Acceleration in m/s^2
     float Y_accel; // Acceleration in m/s^2
@@ -11,10 +11,17 @@ struct SensorboardFrame
     float Y_mag; //
     float Z_mag; // 
     float Pressure; // Pressure in mBar
-    float Latitude; // Latitude in degrees
-    float Longitude; // Longitude in degrees
-    float N_Velocity; // North Velocity in m/s
-    float E_Velocity; // East Velocity in m/s
-    float D_Velocity; // Down Velocity in m/s
+    float Temperature; // Temperature in degrees C
+    uint32_t time; // Time in milliseconds since the start of the program
+};
+
+struct GPSFrame
+{
+    float N_Position; // North Position in Meters
+    float E_Position; // East Position in Meters
+    float D_Position; // Down Position in Meters
+    float N_Velocity; // North Velocity in Meters/Second
+    float E_Velocity; // East Velocity in Meters/Second
+    float D_Velocity; // Down Velocity in Meters/Second
     uint32_t time; // Time in milliseconds since the start of the program
 };
