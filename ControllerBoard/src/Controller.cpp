@@ -13,12 +13,12 @@ uint8_t Controller::calcAbPct(float alt, int8_t velLat, int8_t velVert) {
     float dynamicPressure = pressure_at_altitude(pZero,alt,tZero);
     float dragForce = targetDragCoefficient(alt,velLat,velVert,dt,pZero,0,tZero);
 
-    float a = 0.709260886206603;
-    float b = -0.000743412395632551;
-    float c = 0.244154597256709;
-    float d = 9.04473193768848e-09;
-    float e = -0.00404179774141117;
-    float f = 0.0000097143566652642;
+    float a = 0.699638467114056;
+    float b = -0.000844592841487885;
+    float c = 0.283556333385388;
+    float d = 6.71177099854179e-09;
+    float e = -0.00506902401028055;
+    float f = 0.000013347923590557;
     // where TotalCD = rocketCD + a + b*airbrake_extension + c*airbrake_extension^2
 
     float extension = a + b*dragForce + c*dynamicPressure + d*(dragForce*dragForce) + (e*dynamicPressure*dynamicPressure) + f*dragForce*dynamicPressure;
