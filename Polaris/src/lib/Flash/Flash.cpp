@@ -44,7 +44,7 @@ bool FlashChip::writeStruct(const void *message, const uint8_t dataSize) {
 
 bool FlashChip::readData() {
     // iterate through the vector of addresses and read the data
-    for(int i = 0; i < addresses.size(); i++) {
+    for(uint16_t i = 0; i < addresses.size(); i++) {
         uint8_t data;
         flash->readAnything(addresses[i], data);
         Serial.print("Data: "); Serial.println(data);

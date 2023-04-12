@@ -20,16 +20,16 @@
  Contributions by Paul Bouchier and Benjamin.soelberg
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef MyMetro_h
-#define MyMetro_h
+#ifndef Metro_h
+#define Metro_h
 
 #include <inttypes.h>
 
-class MyMetro
+class Metro
 {
 public:
-    MyMetro();
-    MyMetro(unsigned long interval_millis);
+    Metro();
+    Metro(unsigned long interval_millis);
     void interval(unsigned long interval_millis);
     uint8_t check();
     void reset();
@@ -39,3 +39,4 @@ private:
 };
 
 #endif
+

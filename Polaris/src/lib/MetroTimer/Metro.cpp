@@ -1,27 +1,32 @@
+
+
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
 #else
 #include "WProgram.h"
 #endif
-#include "MyMetroTimer.h"
+#include "Metro.h"
 
-MyMetro::MyMetro() {
-    previous_millis = 0;
+Metro::Metro() :
+    previous_millis(0)
+{
     interval_millis = 1000;
 }
 
-MyMetro::MyMetro(unsigned long a_interval_millis) {
-    previous_millis = 0;
-    interval_millis = a_interval_millis;
-}
 
-
-void MyMetro::interval(unsigned long a_interval_millis)
+Metro::Metro(unsigned long a_interval_millis) :
+    previous_millis(0)
 {
     interval_millis = a_interval_millis;
 }
 
-uint8_t MyMetro::check()
+
+void Metro::interval(unsigned long a_interval_millis)
+{
+    interval_millis = a_interval_millis;
+}
+
+uint8_t Metro::check()
 {
     unsigned long now = millis();
 
@@ -44,7 +49,8 @@ uint8_t MyMetro::check()
     return 0;
 }
 
-void MyMetro::reset()
+void Metro::reset()
 {
     previous_millis = millis();
 }
+

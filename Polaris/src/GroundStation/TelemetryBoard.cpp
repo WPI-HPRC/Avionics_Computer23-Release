@@ -32,22 +32,14 @@ void TelemetryBoard::setState(TransceiverState newState) {
     this->transmitterState = newState;
 }
 
-void TelemetryBoard::onLoop(uint32_t timestamp) {
+void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
     switch(transmitterState) {
         case(TX): {
-            transmitPacket.timestamp = timestamp;
-            transmitPacket.state = 0;
-            transmitPacket.temperature = 32;
-            transmitPacket.acX = 10;
-            transmitPacket.acY = 10;
-            transmitPacket.acZ = 10;
-            transmitPacket.gyX = 10;
-            transmitPacket.gyY = 10;
-            transmitPacket.gyZ = 10;
+            transmitPacket = telemPacket;
 
             ResponseStatus rs = e32ttl.sendFixedMessage(ADDH,ADDL,CHAN, &transmitPacket, sizeof(TelemetryPacket));
 
-            Serial.print("Packet ("); Serial.print(timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
+            Serial.print("Packet ("); Serial.print(transmitPacket.timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
             break;
         }
@@ -75,22 +67,22 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     float altitude = rxPacket.altitude;
     uint8_t * altB = (uint8_t *) &altitude;
 
-    int16_t accelX = rxPacket.acX;
+    int16_t accelX = rxPacket.ac_x;
     uint8_t * acxB = (uint8_t *) &accelX;
 
-    int16_t accelY = rxPacket.acY;
+    int16_t accelY = rxPacket.ac_y;
     uint8_t * acyB = (uint8_t *) &accelY;
     
-    int16_t accelZ = rxPacket.acZ;
+    int16_t accelZ = rxPacket.ac_z;
     uint8_t * aczB = (uint8_t *) &accelZ;
 
-    int16_t gyroX = rxPacket.gyX;
+    int16_t gyroX = rxPacket.gy_x;
     uint8_t * gyX = (uint8_t *) &gyroX;
 
-    int16_t gyroY = rxPacket.gyY;
+    int16_t gyroY = rxPacket.gy_x;
     uint8_t * gyY = (uint8_t *) &gyroY;
     
-    int16_t gyroZ = rxPacket.gyZ;
+    int16_t gyroZ = rxPacket.gy_z;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
 
     Serial.print(PACKET_BEG);
