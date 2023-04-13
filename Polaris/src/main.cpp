@@ -35,8 +35,18 @@ Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in S
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
 
 // Declarations for state transition detection buffer
-int16_t transitionBuf[10];
-uint8_t transitionBufInd = 0;
+// Z Acceleration buffer
+int16_t transitionBufAcc[10];
+uint8_t transitionBufIndAcc = 0;
+
+// Vertical velocity buffer
+int16_t transitionBufVelVert[10];
+uint8_t transitionBufIndVelVert = 0;
+
+// Altitude buffer
+int16_t transitionBufAlt[10];
+uint8_t transitionBufIndAlt = 0;
+int16_t altitudePreviousAvg;
 
 // Declaration for sensor data struct, measured values
 SensorFrame sensorPacket;
@@ -104,23 +114,23 @@ boolean launchDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = sensorPacket.ac_z;
+    transitionBufAcc[transitionBufIndAcc] = sensorPacket.ac_z;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
     {
-        sum += transitionBuf[i];
+        sum += transitionBufAcc[i];
     }
     sum = sum / 10.0;
-    transitionBufInd = (transitionBufInd + 1) % 10;
+    transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
     if (sum > ACCEL_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
-            transitionBuf[j] = 0;
+            transitionBufAcc[j] = 0;
         }
-        transitionBufInd = 0;
+        transitionBufIndAcc = 0;
         Serial.println("Launch detected!");
         return true;
     }
@@ -133,55 +143,87 @@ boolean motorBurnoutDetect()
 {
     // accel value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = sensorPacket.ac_z;
+    transitionBufAcc[transitionBufIndAcc] = sensorPacket.ac_z;
     // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
     {
-        sum += transitionBuf[i];
+        sum += transitionBufAcc[i];
     }
     sum = sum / 10.0;
 
-    transitionBufInd = (transitionBufInd + 1) % 10;
+    transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
     if (sum < 0)
     {
         for (int j = 0; j < 10; j++)
         {
-            transitionBuf[j] = 0;
+            transitionBufAcc[j] = 0;
         }
-        transitionBufInd = 0;
+        transitionBufIndAcc = 0;
         Serial.println("Motor burnout detected!");
         return true;
     }
     return false;
 }
 
-// TODO THIS REALLY NEEDS TO BE DONE
+
 boolean apogeeDetect()
 {
-    // if descending, case = DESCENT
-    // Decreasing altitude
+    // Velocity value gets updated in sensor reading fcn
     // add to cyclic buffer
-    transitionBuf[transitionBufInd] = sensorPacket.ac_z;
-    // not going to be running avg, so this needs to be changed
+    transitionBufVelVert[transitionBufIndVelVert] = stateStruct.vel_vert;
+    // take running average value
     float sum = 0.0;
     for (int i = 0; i < 10; i++)
     {
-        sum += transitionBuf[i];
+        sum += transitionBufVelVert[i];
     }
     sum = sum / 10.0;
-    transitionBufInd = (transitionBufInd + 1) % 10;
-    //   if (sum < 0) {
-    //	   Serial.println("Apogee detected!");
-    //     return true;
-    //   }
+
+    transitionBufIndVelVert = (transitionBufIndVelVert + 1) % 10;
+    // if average vertical velocity is negative, passed apogee
+    if (sum < 0)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            transitionBufVelVert[j] = 0;
+        }
+        transitionBufIndVelVert = 0;
+        Serial.println("Apogee detected!");
+        return true;
+    }
     return false;
 }
 
 boolean landingDetect()
 {
-    return false; // TODO: WRITE SOMETHING HERE FOR REAL
+    // ALtitude value gets updated in sensor reading fcn
+    // add to cyclic buffer
+    transitionBufAlt[transitionBufIndAlt] = altitude;
+    // take running average value
+    float sum = 0.0;
+    for (int i = 0; i < 10; i++)
+    {
+        sum += transitionBufAlt[i];
+    }
+    sum = sum / 10.0;
+
+    transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
+
+    // if altitude is near 0 for 20 seconds, landed
+    if (sum <= LAND_THRESHOLD)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            transitionBufAlt[j] = 0;
+        }
+        transitionBufIndAlt = 0;
+        Serial.println("Landing detected!");
+        return true;
+    }
+
+    return false;
 }
 
 // Convert pressure in [mBar] to altitude in [m]
@@ -430,7 +472,7 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
-            if ((telemPacket.ac_total > ((10 * G) * 100)) || (telemPacket.vel_lat / telemPacket.vel_vert > PITCH_FRACTION))
+            if ((ac_total > ((10 * G) * 100)) || (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION))
             {
                 state_start = millis();
                 avionicsState = COAST;
@@ -476,7 +518,7 @@ void loop()
 
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
-            if ((telemPacket.vel_lat / telemPacket.vel_vert) > PITCH_FRACTION)
+            if (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION)
             {
                 state_start = millis();
                 avionicsState = ABORT;

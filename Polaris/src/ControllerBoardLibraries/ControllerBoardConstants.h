@@ -3,6 +3,7 @@ const int ACCEL_THRESHOLD = 3 * G;         // m/s^2
 const int MAIN_DESCENT_THRESHOLD = -6;     // m/s TODO FIX THIS
 const int DROGUE_DESCENT_THRESHOLD = -6;   // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
+const int LAND_THRESHOLD = 5;              // ceiling for landing height in meters
 
 const int HZ_10 = 10;
 const int HZ_100 = 100;
