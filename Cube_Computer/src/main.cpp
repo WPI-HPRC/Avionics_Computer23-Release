@@ -1,14 +1,21 @@
 #include <Arduino.h>
-#include <Barometer\Barometer_SB.h>
-#include <Temperature\TMP117.h>
+#include <Barometer/Barometer_SB.h>
+#include <Temperature/TMP117.h>
+#include <Flash/Flash.h>
+
 
 TMP117 sensor; // Initalize sensor
+FlashChip flash = FlashChip();
+String structString = "";
+
 
 void setup()
 {
   Wire.begin();
-  Serial.begin(115200);    // Start serial communication at 115200 baud
+  Serial.begin(9600);    // Start serial communication at 9600 baud
   Wire.setClock(400000);   // Set clock speed to be the fastest for better communication (fast mode)
+
+  while (!Serial){}
 
   Serial.println("TMP117 Example 1: Basic Readings");
   if (sensor.begin() == true) // Function to check if the sensor will correctly self-identify with the proper Device ID/Address
@@ -20,6 +27,10 @@ void setup()
     Serial.println("Device failed to setup- Freezing code.");
     while (1); // Runs forever
   }
+
+  flash.init();
+
+
 }
 
 void loop()
@@ -32,6 +43,8 @@ void loop()
     Serial.println(); // Create a white space for easier viewing
     Serial.print("Temperature in Fahrenheit: ");
     Serial.println(tempF);
-    delay(500); // Delay added for easier readings
+    structString = String(tempF);
+    flash.writeStruct(structString);
+    delay(1000); // Read and log temperature every second
   }
 }
