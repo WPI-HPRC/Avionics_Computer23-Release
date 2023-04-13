@@ -222,29 +222,29 @@ bool ICM42688P::setFilters(){
 */
 bool ICM42688P::setup(){
     if(!checkWhoAmI()){
-        // Serial.println("IMU:Who am I check failed");
+        Serial.println("IMU:Who am I check failed");
         return false;
     }
-    // Serial.println("IMU:Who am I check passed");
+    Serial.println("IMU:Who am I check passed");
     if(!sensorEnable()){
-        // Serial.println("IMU:Sensor enable failed");
+        Serial.println("IMU:Sensor enable failed");
         return false;
     }
-    // Serial.println("IMU:Sensor enable passed");
+    Serial.println("IMU:Sensor enable passed");
     if(!setODR_FS()){
-        // Serial.println("IMU:Set ODR and FS failed");
+        Serial.println("IMU:Set ODR and FS failed");
         return false;
     }
-    // Serial.println("IMU:Set ODR and FS passed");
+    Serial.println("IMU:Set ODR and FS passed");
     if(!setFilters()){
-        // Serial.println("IMU:Set filters failed");
+        Serial.println("IMU:Set filters failed");
         return false;
     }
-    // Serial.println("IMU:Set filters passed");
+    Serial.println("IMU:Set filters passed");
 
-    // Serial.println("IMU:Switching to bank 0");
+    Serial.println("IMU:Switching to bank 0");
     if (!switchToBank(0)){
-        // Serial.println("IMU:Failed to switch to bank 0");
+        Serial.println("IMU:Failed to switch to bank 0");
         return false;
     }
     //TODO:: Read data from the sensor to make sure it is working
