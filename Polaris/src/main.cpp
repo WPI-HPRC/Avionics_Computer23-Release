@@ -58,8 +58,11 @@ int16_t vel_total;
 int16_t ac_total;
 uint8_t abPct;
 
-int16_t sumDescentVel = 0;
-int16_t pollCount = 0;
+int16_t sumMainDescentVel = 0;
+int16_t mainPollCount = 0;
+
+int16_t sumDrogueDescentVel = 0;
+int16_t droguePollCount = 0;
 
 // Enumeration for rocket mission states
 enum AvionicsState
@@ -311,22 +314,22 @@ void debugPrint()
     Serial.print(telemPacket.abPct);
     Serial.println("%");
     Serial.print("Accel-X: ");
-    Serial.print(telemPacket.ac_x/100.0);
+    Serial.print(telemPacket.ac_x / 100.0);
     Serial.println(" m/s^2");
     Serial.print("Accel-Y: ");
-    Serial.print(telemPacket.ac_y/100.0);
+    Serial.print(telemPacket.ac_y / 100.0);
     Serial.println(" m/s^2");
     Serial.print("Accel-Z: ");
-    Serial.print(telemPacket.ac_z/100.0);
+    Serial.print(telemPacket.ac_z / 100.0);
     Serial.println(" m/s^2");
     Serial.print("Gyro-X: ");
-    Serial.print(telemPacket.gy_x/10.0);
+    Serial.print(telemPacket.gy_x / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Gyro-Y: ");
-    Serial.print(telemPacket.gy_y/10.0);
+    Serial.print(telemPacket.gy_y / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Gyro-Z: ");
-    Serial.print(telemPacket.gy_z/10.0);
+    Serial.print(telemPacket.gy_z / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Vertical velocity: ");
     Serial.print(telemPacket.vel_vert);
@@ -351,13 +354,16 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    //flash.init();
-    //flash.initialWrite();
+    // flash.init();
+    // flash.initialWrite();
 
     // Sensor initialization
-    if (sensorboard.setup()) {
+    if (sensorboard.setup())
+    {
         Serial.println("Sensor setup sucess!");
-    } else {
+    }
+    else
+    {
         Serial.println("Sensor setup failed.");
     }
 
@@ -366,7 +372,6 @@ void setup()
     airbrakeServo.setPosition(0);
 
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
-
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -420,9 +425,12 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
-            // if ((telemPacket.ac_total > (10 * G)) || (TRIG)) {
-
-            // }
+            if ((telemPacket.ac_total > ((10 * G) * 100)) || (telemPacket.vel_lat / telemPacket.vel_vert > PITCH_FRACTION))
+            {
+                state_start = millis();
+                avionicsState = COAST;
+                break;
+            }
 
             break;
         // case COAST_CONTINGENCY:
@@ -463,14 +471,18 @@ void loop()
 
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
+            if ((telemPacket.vel_lat / telemPacket.vel_vert) > PITCH_FRACTION)
+            {
+                state_start = millis();
+                avionicsState = ABORT;
+                break;
+            }
+
             // Acceleration is greater than 10g's
             // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
-            // if (TRIG) {
-
-            // }
-            if (ac_total > 10 * G)
+            if (ac_total > ((10 * G) * 100))
             {
-                if (timeout(13000))
+                if (timeout(13000)) // currently 13 seconds
                 {
                     Serial.println("Abort triggered by acceleration greater than 10g's");
                     state_start = millis();
@@ -482,8 +494,20 @@ void loop()
         case DROGUE_DEPLOY:
             // TODO: Check for nominal drogue descent rate, then move into DROGUE_DESCENT state
             // Poll for a second?
-            // state_start = millis();
-            // avionicsState = DROGUE_DESCENT;
+            if (!timeout(1000))
+            {
+                sumDrogueDescentVel += stateStruct.vel_vert;
+                droguePollCount += 1;
+            }
+            else
+            {
+                int16_t avgDescentRate = sumDrogueDescentVel / droguePollCount;
+                if (avgDescentRate >= DROGUE_DESCENT_THRESHOLD)
+                {
+                    state_start = millis();
+                    avionicsState = DROGUE_DESCENT;
+                }
+            }
 
             // ABORT Case
             // 10 second timeout
@@ -530,13 +554,13 @@ void loop()
             // Poll for a second?
             if (!timeout(1000))
             {
-                sumDescentVel += stateStruct.vel_vert;
-                pollCount += 1;
+                sumMainDescentVel += stateStruct.vel_vert;
+                mainPollCount += 1;
             }
             else
             {
-                int16_t avgDescentRate = sumDescentVel / pollCount;
-                if (avgDescentRate >= DESCENT_THRESHOLD)
+                int16_t avgDescentRate = sumMainDescentVel / mainPollCount;
+                if (avgDescentRate >= MAIN_DESCENT_THRESHOLD)
                 {
                     state_start = millis();
                     avionicsState = MAIN_DESCENT;
@@ -608,12 +632,13 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        //logData();
+        // logData();
 
         // Transmit data packet to ground station
         sendTelemetry();
 
-        if (counter % 10 == 0) {
+        if (counter % 10 == 0)
+        {
             debugPrint();
         }
 
