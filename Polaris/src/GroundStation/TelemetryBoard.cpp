@@ -105,9 +105,6 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.print(TEMPERATURE_IDENT);
     Serial.write(rxPacket.temperature);
 
-    Serial.print(VOLTAGE_IDENT);
-    Serial.write(rxPacket.vBatt);
-
     Serial.print(AIRBRAKES_IDENT);
     Serial.write(rxPacket.abPct);
 

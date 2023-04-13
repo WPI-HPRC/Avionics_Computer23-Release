@@ -344,18 +344,22 @@ void debugPrint()
 void setup()
 {
     // Communications setup
-    Serial.begin(57600);
+    Serial.begin(9600);
+
+    // Telemetry initialization
+    telemBoard.setState(RX);
+    telemBoard.init();
 
     // Flash memory initialization
     //flash.init();
     //flash.initialWrite();
 
     // Sensor initialization
-    sensorboard.setup();
-
-    // Telemetry initialization
-    telemBoard.setState(RX);
-    telemBoard.init();
+    if (sensorboard.setup()) {
+        Serial.println("Sensor setup sucess!");
+    } else {
+        Serial.println("Sensor setup failed.");
+    }
 
     // Initialize airbrake servo and set to fully retracted position
     airbrakeServo.init();

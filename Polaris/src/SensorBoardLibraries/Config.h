@@ -7,7 +7,6 @@
 //------------------------ IMU ------------------------//
 const uint8_t IMU_I2C_ADDRESS = 0x68;
 
-
 // IMU Register sets - LOOK AT THE DATASHEET FOR MORE INFO
 const uint8_t SENSOR_ENABLE = 0x0F; // 0000 1111 = Enable all sensors
 
