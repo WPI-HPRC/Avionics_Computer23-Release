@@ -37,15 +37,15 @@ void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
         case(TX): {
             transmitPacket = telemPacket;
 
-            ResponseStatus rs = e32ttl.sendFixedMessage(ADDH,ADDL,CHAN, &transmitPacket, sizeof(TelemetryPacket));
+            ResponseStatus rs = e32ttl.sendFixedMessage(ADDH,ADDL,CHAN, &transmitPacket, packetSize);
 
-            // Serial.print("Packet ("); Serial.print(transmitPacket.timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
+            Serial.print("Packet ("); Serial.print(transmitPacket.timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
             break;
         }
         case (RX): {
             if(e32ttl.available() > 1) {
-                ResponseStructContainer rsc = e32ttl.receiveMessage(sizeof(TelemetryPacket));
+                ResponseStructContainer rsc = e32ttl.receiveMessage(packetSize);
                 TelemetryPacket newPacket = *(TelemetryPacket*) rsc.data;
                 printPacketToGS(newPacket);
 

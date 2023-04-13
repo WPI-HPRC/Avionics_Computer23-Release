@@ -223,10 +223,10 @@ void constructTelemPacket()
     // Airbrake actuation percent
     telemPacket.abPct = abPct;
 
-    // Acceleration (XYZ) [m/s^2] - Scaled by 100x for transmission
-    telemPacket.ac_x = (int16_t)sensorPacket.ac_x * 100;
-    telemPacket.ac_y = (int16_t)sensorPacket.ac_y * 100;
-    telemPacket.ac_z = (int16_t)sensorPacket.ac_z * 100;
+    // Acceleration (XYZ) [g] - Scaled by 100x for transmission
+    telemPacket.ac_x = sensorPacket.ac_x * 100;
+    telemPacket.ac_y = sensorPacket.ac_y * 100;
+    telemPacket.ac_z = sensorPacket.ac_z * 100;
     telemPacket.ac_total = ac_total * 100;
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
@@ -314,13 +314,13 @@ void debugPrint()
     Serial.print(telemPacket.abPct);
     Serial.println("%");
     Serial.print("Accel-X: ");
-    Serial.print(telemPacket.ac_x / 100.0);
+    Serial.print((float) telemPacket.ac_x / 100);
     Serial.println(" m/s^2");
     Serial.print("Accel-Y: ");
-    Serial.print(telemPacket.ac_y / 100.0);
+    Serial.print((float) telemPacket.ac_y / 100);
     Serial.println(" m/s^2");
     Serial.print("Accel-Z: ");
-    Serial.print(telemPacket.ac_z / 100.0);
+    Serial.print((float) telemPacket.ac_z / 100);
     Serial.println(" m/s^2");
     Serial.print("Gyro-X: ");
     Serial.print(telemPacket.gy_x / 10.0);
@@ -350,7 +350,7 @@ void setup()
     Serial.begin(9600);
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -642,10 +642,10 @@ void loop()
         // Transmit data packet to ground station
         sendTelemetry();
 
-        if (counter % 10 == 0)
-        {
-            debugPrint();
-        }
+        // if (counter % 10 == 0)
+        // {
+        //     debugPrint();
+        // }
 
         counter++;
         timer.reset();
