@@ -358,6 +358,11 @@ void setup()
     // flash.initialWrite();
 
     // Sensor initialization
+    Wire.begin();
+    Wire.setClock(400000);
+    SPI.begin();
+
+
     if (sensorboard.setup())
     {
         Serial.println("Sensor setup sucess!");
