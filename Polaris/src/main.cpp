@@ -197,23 +197,17 @@ boolean apogeeDetect()
     return false;
 }
 
+// detect landing by registering when the altitude doesn't change much
 boolean landingDetect()
 {
     // ALtitude value gets updated in sensor reading fcn
     // add to cyclic buffer
     transitionBufAlt[transitionBufIndAlt] = altitude;
     // take running average value
-    float sum = 0.0;
-    for (int i = 0; i < 10; i++)
-    {
-        sum += transitionBufAlt[i];
-    }
-    sum = sum / 10.0;
-
-    transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
+    float prev = transitionBufAlt[(transitionBufIndAlt-1 % 10)];
 
     // if altitude is near 0 for 20 seconds, landed
-    if (sum <= LAND_THRESHOLD)
+    if (abs(altitude-prev) < 10 && altitude <= LAND_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -223,6 +217,7 @@ boolean landingDetect()
         Serial.println("Landing detected!");
         return true;
     }
+    transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
 
     return false;
 }
