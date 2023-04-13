@@ -267,16 +267,16 @@ void constructTelemPacket()
     // Airbrake actuation percent
     telemPacket.abPct = abPct;
 
-    // Acceleration (XYZ) [g] - Scaled by 100x for transmission
-    telemPacket.ac_x = sensorPacket.ac_x * 100;
-    telemPacket.ac_y = sensorPacket.ac_y * 100;
-    telemPacket.ac_z = sensorPacket.ac_z * 100;
+    // Acceleration (XYZ) [m/s^2] - Scaled by 100x for transmission
+    telemPacket.ac_x = (int16_t) (sensorPacket.ac_x * 100.0);
+    telemPacket.ac_y = (int16_t) (sensorPacket.ac_y * 100.0);
+    telemPacket.ac_z = (int16_t) (sensorPacket.ac_z * 100.0);
     telemPacket.ac_total = ac_total * 100;
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
-    telemPacket.gy_x = (int16_t)sensorPacket.gy_x * 10;
-    telemPacket.gy_y = (int16_t)sensorPacket.gy_y * 10;
-    telemPacket.gy_z = (int16_t)sensorPacket.gy_z * 10;
+    telemPacket.gy_x = (int16_t) (sensorPacket.gy_x * 10.0);
+    telemPacket.gy_y = (int16_t) (sensorPacket.gy_y * 10.0);
+    telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
     telemPacket.vel_vert = (int16_t)vel_vert;
@@ -343,6 +343,7 @@ void lowPowerMode()
 // Print telemPacket to Serial monitor for debugging purposes
 void debugPrint()
 {
+    // Michael Worskid
     Serial.print("Timestamp: ");
     Serial.print(telemPacket.timestamp);
     Serial.println(" ms");
@@ -376,6 +377,7 @@ void debugPrint()
     Serial.print(telemPacket.gy_z / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Vertical velocity: ");
+    // Michael was here
     Serial.print(telemPacket.vel_vert);
     Serial.println(" m/s");
     Serial.print("Lateral velocity: ");
@@ -423,6 +425,7 @@ void setup()
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
 }
 
+// fuck you michael
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
 void loop()
 {
@@ -686,10 +689,10 @@ void loop()
         // Transmit data packet to ground station
         sendTelemetry();
 
-        // if (counter % 10 == 0)
-        // {
-        //     debugPrint();
-        // }
+        if (counter % 9 == 0)
+        {
+            debugPrint();
+        }
 
         counter++;
         timer.reset();
