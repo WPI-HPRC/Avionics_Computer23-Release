@@ -30,6 +30,7 @@ ServoDriver airbrakeServo(SERVO_PIN); // Instantiate airbrake servo
 Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 unsigned long state_start;                        // must be set to millis() when entering a new state
+uint32_t timestamp;                               // timestamp for telemetry packet
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
@@ -251,7 +252,8 @@ void constructTelemPacket()
 {
 
     // Timestamp
-    telemPacket.timestamp = millis(); // TODO: Maybe change this to be time after launch detect?
+    timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
+    telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
@@ -389,10 +391,10 @@ void debugPrint()
 void setup()
 {
     // Communications setup
-    Serial.begin(9600);
+    Serial.begin(57600);
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
