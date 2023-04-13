@@ -39,7 +39,7 @@ void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
 
             ResponseStatus rs = e32ttl.sendFixedMessage(ADDH,ADDL,CHAN, &transmitPacket, sizeof(TelemetryPacket));
 
-            Serial.print("Packet ("); Serial.print(transmitPacket.timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
+            // Serial.print("Packet ("); Serial.print(transmitPacket.timestamp); Serial.print("): "); Serial.println(rs.getResponseDescription());
 
             break;
         }

@@ -50,9 +50,6 @@ TelemetryPacket telemPacket;
 // Declaration for state estimate struct
 StateStruct stateStruct;
 
-// Variable declarations for measured values
-uint8_t vBatt;
-
 // Variable declarations for filtered state data
 float altitude;
 int16_t vel_vert;
@@ -220,9 +217,6 @@ void constructTelemPacket()
     // Temperature
     telemPacket.temperature = sensorPacket.Temperature;
 
-    // Battery voltage [V] - scaled by 20x for transmission
-    telemPacket.vBatt = (uint8_t)vBatt * 20;
-
     // Airbrake actuation percent
     telemPacket.abPct = abPct;
 
@@ -299,6 +293,53 @@ void lowPowerMode()
     // TODO: Do something. Probably want to send a state variable to all boards eventually.
 }
 
+// Print telemPacket to Serial monitor for debugging purposes
+void debugPrint()
+{
+    Serial.print("Timestamp: ");
+    Serial.print(telemPacket.timestamp);
+    Serial.println(" ms");
+    Serial.print("State: ");
+    Serial.println(telemPacket.state);
+    Serial.print("Altitude: ");
+    Serial.print(telemPacket.altitude);
+    Serial.println(" m");
+    Serial.print("Temperature: ");
+    Serial.print(telemPacket.temperature);
+    Serial.println(" degrees C");
+    Serial.print("abPct: ");
+    Serial.print(telemPacket.abPct);
+    Serial.println("%");
+    Serial.print("Accel-X: ");
+    Serial.print(telemPacket.ac_x/100.0);
+    Serial.println(" m/s^2");
+    Serial.print("Accel-Y: ");
+    Serial.print(telemPacket.ac_y/100.0);
+    Serial.println(" m/s^2");
+    Serial.print("Accel-Z: ");
+    Serial.print(telemPacket.ac_z/100.0);
+    Serial.println(" m/s^2");
+    Serial.print("Gyro-X: ");
+    Serial.print(telemPacket.gy_x/10.0);
+    Serial.println(" degrees/s");
+    Serial.print("Gyro-Y: ");
+    Serial.print(telemPacket.gy_y/10.0);
+    Serial.println(" degrees/s");
+    Serial.print("Gyro-Z: ");
+    Serial.print(telemPacket.gy_z/10.0);
+    Serial.println(" degrees/s");
+    Serial.print("Vertical velocity: ");
+    Serial.print(telemPacket.vel_vert);
+    Serial.println(" m/s");
+    Serial.print("Lateral velocity: ");
+    Serial.print(telemPacket.vel_lat);
+    Serial.println(" m/s");
+    Serial.print("Total velocity: ");
+    Serial.print(telemPacket.vel_total);
+    Serial.println(" m/s");
+    Serial.println("");
+}
+
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
@@ -306,8 +347,8 @@ void setup()
     Serial.begin(9600);
 
     // Flash memory initialization
-    flash.init();
-    flash.initialWrite();
+    //flash.init();
+    //flash.initialWrite();
 
     // Sensor initialization
     sensorboard.setup();
@@ -563,10 +604,14 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        logData();
+        //logData();
 
         // Transmit data packet to ground station
         sendTelemetry();
+
+        if (counter % 10 == 0) {
+            debugPrint();
+        }
 
         counter++;
         timer.reset();
