@@ -54,7 +54,7 @@ public:
 
     TelemetryBoard();
 
-    bool init();
+    void init();
 
     void onLoop(TelemetryPacket telemPacke);
 

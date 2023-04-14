@@ -1,6 +1,8 @@
 #include "Controller.h"
 #include <Arduino.h>
 
+Metro abTimer = Metro(5);
+
 Controller::Controller() {
     // constructor things
 }
@@ -35,11 +37,7 @@ float Controller::targetDragCoefficient(float alt, int8_t velLat, int8_t velVert
     float apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
 
     float error = abs(1-((targetApogee-alt)/(apogee-alt)));
-    float delta = 0.00001; 
-    bool oppSide = false;
-    float lastCD = testCD;
-    float lastApogee = apogee;
-    float lowestError = error;
+    float delta = 0.00001;
 
     int8_t i = 1;
     int8_t maxIterations = 4;
@@ -72,7 +70,7 @@ float Controller::rk4(float alt, int8_t velLat, int8_t velVert, int8_t dt, float
     float rho = density(alt,tZero,P);
     float v = sqrt((velLat*velLat)+(velVert+velVert));
 
-    while(xCurr[1] < 0) {
+    while(xCurr[1] < 0 && abTimer.check() != 1) {
         k1[0] = (float) velLat * dt;
         k1[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
         k1[2] = dt*calcVertAcc(velVert, v, currCD, rho, A);
@@ -132,10 +130,11 @@ float Controller::temperature_at_altitude(float tZero, float alt) {
 // takes in P, height, initial temperature
 float Controller::pressure_at_altitude(float P, float h, float T) {
     P = P*exp((-g*M*h)/(R*T));
+    return P;
 }
 
 // sets initial pressure and temperature
-float Controller::setInitPressureTemp(float initP, float initT) {
+void Controller::setInitPressureTemp(float initP, float initT) {
     pZero = initP;
     tZero = initT;
 }

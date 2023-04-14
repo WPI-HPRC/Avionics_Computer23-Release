@@ -14,7 +14,9 @@ class StateEstimator {
         float vel_y;
         float vel_z;
         float altitudeBuffer[10];
-        uint8_t BuffInd = 0;
+        float avgBuffer[5];
+        uint8_t altBuffInd = 0;
+        uint8_t avgBuffInd = 0;
 
     public:
         StateStruct state;

@@ -4,7 +4,7 @@ TelemetryBoard::TelemetryBoard() {
     e32ttl.begin();
 }
 
-bool TelemetryBoard::init() {
+void TelemetryBoard::init() {
     ResponseStructContainer c;
     c = e32ttl.getConfiguration();
     Configuration config = *(Configuration*) c.data;

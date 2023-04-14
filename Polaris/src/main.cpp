@@ -181,7 +181,7 @@ void calibrateAltitudeAGL() {
     float altitude_error_sum = 0;
   
     int c = 0;
-    while (c < 1000) {
+    while (c < 2000) {
         
         readSensors();
         altitude = pressureToAltitude(sensorPacket.Pressure);
@@ -192,7 +192,7 @@ void calibrateAltitudeAGL() {
         c++;
     }
 
-    //Divide the sum by 10000 to get the error value
+    //Divide the sum -to get the error value
     altitude_AGL = altitude_error_sum / c;
 
     Serial.print("altitude_AGL: ");
@@ -435,8 +435,15 @@ void doStateEstimation()
 //  Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls()
 {
+    // Serial.println("");
+    // Serial.println("Attempting airbrake controls...");
+
     abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
     airbrakeServo.setPosition(abPct);
+
+    // Serial.print("Completed. Airbrake extension: ");
+    // Serial.print(abPct);
+    // Serial.println("%");
 }
 
 // Send a message to place devices into low power mode and possibly decrease datalogging rate
@@ -467,7 +474,7 @@ void debugPrint()
     Serial.println(" g");
     Serial.print("Accel-Y: ");
     Serial.print((float) telemPacket.ac_y / 100.0);
-    Serial.println("g");
+    Serial.println(" g");
     Serial.print("Accel-Z: ");
     Serial.print((float) telemPacket.ac_z / 100.0);
     Serial.println(" g");
@@ -611,8 +618,8 @@ void loop()
         //     }
         //     break;
         case COAST:
-
-            // doAirbrakeControls();
+            
+            doAirbrakeControls();
 
             if (apogeeDetect())
             {
@@ -778,6 +785,7 @@ void loop()
             // jump to here if anything goes terribly wrong (but obv it won't)
             // retract airbrakes
             abPct = 0;
+            airbrakeServo.setPosition(0);
             // stop all other processes
             // Start sending high-fidelity data backwards in time from abort trigger to launch from flash
             break;
@@ -793,12 +801,12 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        // logData();
+        logData();
 
         if (counter % 10 == 0)
         {
             // Transmit data packet to ground station
-            // sendTelemetry();
+            sendTelemetry();
 
             // Print telemPacket to Serial monitor for debugging
             debugPrint();

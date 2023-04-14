@@ -2,6 +2,7 @@
 #define Controller_h
 
 #include <Arduino.h>
+#include "../lib/MetroTimer/Metro.h"
 
 class Controller
 {
@@ -15,7 +16,7 @@ class Controller
         float density(float alt, float tZero, float p);
         float temperature_at_altitude(float tZero, float alt);
         float pressure_at_altitude(float P, float h, float T);
-        float setInitPressureTemp(float initP, float initT);
+        void setInitPressureTemp(float initP, float initT);
 
     private:
         float length = 1.472; // [in] length of the airbrakes
@@ -23,7 +24,7 @@ class Controller
         float targetApogee = 3625; // [ft] TODO: change for diff launches
         float area = 3.14159 * 0.078359 * 0.078359; // cross-sectional area
         float g = 9.8;
-        float m = 24.829; // mass of the rocket
+        float m = 17.28; // dry mass of the rocket
         float dt = 0.001; // 10 milliseconds
         float R = 8.314; 
         float M = 0.02896;
