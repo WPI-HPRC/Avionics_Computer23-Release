@@ -8,6 +8,10 @@
 #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
 
+float sim_altitude = 325;
+float sim_vel_vert = 125;
+float sim_vel_lat = 0;
+
 // Airbrake controller class
 Controller controller;
 
@@ -108,7 +112,7 @@ enum AvionicsState
     ABORT
 };
 
-AvionicsState avionicsState = STARTUP;
+AvionicsState avionicsState = COAST;
 
 // checks whether the state has timed out yet
 bool timeout(uint32_t length)
@@ -435,15 +439,8 @@ void doStateEstimation()
 //  Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls()
 {
-    // Serial.println("");
-    // Serial.println("Attempting airbrake controls...");
-
-    abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
+    abPct = controller.calcAbPct(sim_altitude, sim_vel_lat, sim_vel_vert);
     airbrakeServo.setPosition(abPct);
-
-    // Serial.print("Completed. Airbrake extension: ");
-    // Serial.print(abPct);
-    // Serial.println("%");
 }
 
 // Send a message to place devices into low power mode and possibly decrease datalogging rate
@@ -455,48 +452,19 @@ void lowPowerMode()
 // Print telemPacket to Serial monitor for debugging purposes
 void debugPrint()
 {
+    Serial.println("");
     Serial.print("Timestamp: ");
     Serial.print(telemPacket.timestamp);
     Serial.println(" ms");
-    Serial.print("State: ");
-    Serial.println(telemPacket.state);
-    Serial.print("Altitude: ");
-    Serial.print(telemPacket.altitude);
-    Serial.println(" m");
-    Serial.print("Temperature: ");
-    Serial.print(telemPacket.temperature);
-    Serial.println(" degrees C");
-    Serial.print("abPct: ");
-    Serial.print(telemPacket.abPct);
+    Serial.print("Sim Altitude: ");
+    Serial.print(sim_altitude * 3.28);
+    Serial.println(" ft");
+    Serial.print("Sim Velocity: ");
+    Serial.print(sim_vel_vert * 3.28);
+    Serial.println(" ft/s");
+    Serial.print("Aibrake extension: ");
+    Serial.print(abPct);
     Serial.println("%");
-    Serial.print("Accel-X: ");
-    Serial.print((float) telemPacket.ac_x / 100.0);
-    Serial.println(" g");
-    Serial.print("Accel-Y: ");
-    Serial.print((float) telemPacket.ac_y / 100.0);
-    Serial.println(" g");
-    Serial.print("Accel-Z: ");
-    Serial.print((float) telemPacket.ac_z / 100.0);
-    Serial.println(" g");
-    Serial.print("Gyro-X: ");
-    Serial.print(telemPacket.gy_x / 10.0);
-    Serial.println(" degrees/s");
-    Serial.print("Gyro-Y: ");
-    Serial.print(telemPacket.gy_y / 10.0);
-    Serial.println(" degrees/s");
-    Serial.print("Gyro-Z: ");
-    Serial.print(telemPacket.gy_z / 10.0);
-    Serial.println(" degrees/s");
-    Serial.print("Vertical velocity: ");
-    Serial.print(stateStruct.vel_vert);
-    Serial.println(" m/s");
-    Serial.print("Lateral velocity: ");
-    Serial.print(stateStruct.vel_lat);
-    Serial.println(" m/s");
-    Serial.print("Total velocity: ");
-    Serial.print(stateStruct.vel_total);
-    Serial.println(" m/s");
-    Serial.println("");
 }
 
 // Built-in Arduino setup function. Performs initilization tasks on startup.
@@ -504,6 +472,10 @@ void setup()
 {
     // Communications setup
     Serial.begin(57600);
+
+    // Initialize airbrake servo and set to fully retracted position
+    airbrakeServo.init();
+    airbrakeServo.setPosition(0);
 
     // Telemetry initialization
     telemBoard.setState(RX);
@@ -533,286 +505,45 @@ void setup()
     // Altitude AGL compensation
     calibrateAltitudeAGL();
 
-    // Initialize airbrake servo and set to fully retracted position
-    airbrakeServo.init();
-    airbrakeServo.setPosition(0);
+    // Set initial conditions for controller class
+    controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
-void loop()
-{
-    // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
-    if (timer.check() == 1)
-    {
+void loop() {
 
-        switch (avionicsState)
-        {
+    while (sim_altitude < 1105.0) {
+      
+        // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
+        if (timer.check() == 1) {
 
-        case STARTUP:
-            // STARTUP state must be active for at least 1 second
-            if (prelaunchTimer.check() == 1)
-            {
-                avionicsState = PRELAUNCH;
-                state_start = millis();
-            }
-            break;
-        case PRELAUNCH:
-            // detect acceleration of 3G's
-            if (launchDetect())
-            {
-                avionicsState = BOOST;
-                boostTimer.reset();
-                state_start = millis();
-            }
-            break;
-        case BOOST:
-            // Stay in this state for at least 3 seconds to prevent airbrake activation
-            if (boostTimer.check() == 1) {
-                boostTimerElapsed = true;
-            }
-
-            if (boostTimerElapsed) {
-                if (motorBurnoutDetect()) {
-                    state_start = millis();
-                    avionicsState = COAST;
-                    break;
-                }
-            }
-
-            // Coast Contingency 8 second timeout
-            // Burnout wasn't detected after 8 seconds, move into coast contingency
-            // if (timeout(BOOST_TIMEOUT))
-            // {
-            //     Serial.println("Boost phase timeout triggered!");
-            //     state_start = millis();
-            //     avionicsState = COAST_CONTINGENCY;
-            //     break;
-            // }
-
-            // ABORT Case
-            // Pitch or roll exceeds 30 degrees from vertical
-            // Acceleration is greater than 10g's
-            // if ((ac_total > 10) || (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION))
-            // {
-            //     state_start = millis();
-            //     avionicsState = ABORT;
-            //     break;
-            // }
-
-            break;
-        // case COAST_CONTINGENCY:
-        //     // TODO Check if Coast appears normal, then move into COAST phase
-        //     // state_start = millis();
-        //     // avionicsState = COAST;
-        //     // break;
-
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Coast Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = DROGUE_CONTINGENCY;
-        //         break;
-        //     }
-        //     break;
-        case COAST:
-            
             doAirbrakeControls();
 
-            if (apogeeDetect())
-            {
-                abPct = 0;
-                airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
-                // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
-            }
+            // Pull data from accelerometer, rate gyroscope, magnetometer, and GPS
+            readSensors();
 
-            // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
-            if (timeout(COAST_TIMEOUT))
-            {
-                Serial.println("Coast phase timeout triggered!");
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
-                break;
-            }
+            // Perform state estimation
+            doStateEstimation();
 
-            // ABORT Case
-            // Pitch or roll exceeds 30 degrees from vertical
-            // if (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION)
-            // {
-            //     state_start = millis();
-            //     avionicsState = ABORT;
-            //     break;
-            // }
+            // Log data packer on Flash chip
+            logData();
 
-            // Acceleration is greater than 10g's
-            // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
-            if (ac_total > 10)
-            {
-                if (timeout(13000)) // currently 13 seconds
-                {
-                    Serial.println("Abort triggered by acceleration greater than 10g's");
-                    state_start = millis();
-                    avionicsState = ABORT;
-                    break;
-                }
-            }
-            break;
-        case DROGUE_DEPLOY:
-            if (!timeout(1000))
-            {
-                sumDrogueDescentVel += stateStruct.vel_vert;
-                droguePollCount += 1;
-            }
-            else
-            {
-                int16_t avgDescentRate = sumDrogueDescentVel / droguePollCount;
-                if (avgDescentRate <= DROGUE_DESCENT_THRESHOLD)
-                {
-                    state_start = millis();
-                    avionicsState = DROGUE_DESCENT;
-                }
-            }
-
-            // ABORT Case
-            // 10 second timeout
-            if (timeout(DROGUE_DEPLOY_TIMEOUT))
-            {
-                state_start = millis();
-                avionicsState = ABORT;
-            }
-            break;
-        // case DROGUE_CONTINGENCY:
-        //     // TODO Check for expected drogue descent rate, then move into DROGUE_DESCENT state
-        //     // state_start = millis();
-        //     // avionicsState = DROGUE_DESCENT;
-        //     // break;
-
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Drogue Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = MAIN_CONTINGENCY;
-        //         break;
-        //     }
-        //     break;
-        case DROGUE_DESCENT:
-            // detect altitude drop below 1500ft
-            if (altitude < (1500 * METER_CONVERSION))
-            {
-                state_start = millis();
-                avionicsState = MAIN_DEPLOY;
-                break;
-            }
-
-            // // 120 second contingency timeout
-            // if (timeout(DROGUE_DESCENT_TIMEOUT)) {
-            //     Serial.println("Drogue Descent phase timeout triggered!");
-            //     state_start = millis();
-            //     avionicsState = MAIN_CONTINGENCY;
-            //     break;
-            // }
-            break;
-        case MAIN_DEPLOY:
-            // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
-            // Poll for a second?
-            if (!timeout(1000))
-            {
-                sumMainDescentVel += stateStruct.vel_vert;
-                mainPollCount += 1;
-            }
-            else
-            {
-                int16_t avgDescentRate = sumMainDescentVel / mainPollCount;
-                if (avgDescentRate <= MAIN_DESCENT_THRESHOLD)
-                {
-                    state_start = millis();
-                    avionicsState = MAIN_DESCENT;
-                }
-            }
-
-            // ABORT Case
-            // 10 second timeout
-            if (timeout(MAIN_DEPLOY_TIMEOUT))
-            {
-                state_start = millis();
-                avionicsState = ABORT;
-            }
-            break;
-        // case MAIN_CONTINGENCY:
-        //     // TODO Check for expected main descent rate, then move into MAIN_DESCENT state
-        //     // state_start = millis();
-        //     // avionicsState = MAIN_DESCENT;
-        //     // break;
-
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Main Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = POSTFLIGHT;
-        //         break;
-        //     }
-        //     break;
-        case MAIN_DESCENT:
-            // transmit data during this phase
-
-            // altitude below 50ft
-            // other checks?
-            if (landingDetect())
-            {
-                state_start = millis();
-                avionicsState = POSTFLIGHT;
-            }
-
-            // timeout after 100 seconds if other checks fail
-            if (timeout(MAIN_DESCENT_TIMEOUT))
-            {
-                Serial.println("Main Descent phase timeout triggered!");
-                avionicsState = POSTFLIGHT;
-                break;
-            }
-            break;
-        case POSTFLIGHT:
-            // datalog slow
-            lowPowerMode();
-            break;
-        case ABORT:
-            // jump to here if anything goes terribly wrong (but obv it won't)
-            // retract airbrakes
-            abPct = 0;
-            airbrakeServo.setPosition(0);
-            // stop all other processes
-            // Start sending high-fidelity data backwards in time from abort trigger to launch from flash
-            break;
-
-        default:
-            break;
-        }
-
-        // Pull data from accelerometer, rate gyroscope, magnetometer, and GPS
-        readSensors();
-
-        // Perform state estimation
-        doStateEstimation();
-
-        // Log data packer on Flash chip
-        logData();
-
-        if (counter % 10 == 0)
-        {
-            // Transmit data packet to ground station
-            sendTelemetry();
-
-            // Print telemPacket to Serial monitor for debugging
             debugPrint();
+
+            counter++;
+            timer.reset();
+
+            sim_altitude += sim_vel_vert * 0.01;
+            sim_vel_vert -= 0.1;
         }
 
-        counter++;
-        timer.reset();
     }
+
+    Serial.println("");
+    Serial.println("Simulation completed.");
+    airbrakeServo.setPosition(0);
+
+    while(true) {};
 }
