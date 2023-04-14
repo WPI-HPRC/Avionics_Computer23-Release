@@ -3,6 +3,14 @@
 #include <SPIFlash.h>
 #include <Adafruit_AHTX0.h>
 #include <MS5x.h>
+#include <GroundStation/Telemetry.h>
+
+#include ".\lib\Metro\Metro.h"
+#include "Config.h"
+
+Metro timer = Metro(1000 / 10);
+int counter = 0;
+uint32_t timestamp = 0;
 
 TMP117 tmp; // Initalize sensor
 Adafruit_AHTX0 aht;
@@ -14,10 +22,16 @@ String structString = "";
 double pressure = 0;
 double tempF = 0;
 
+Telemetry telemetry;
+
 void setup()
 {
   Wire.begin();
   Serial.begin(9600); // Start serial communication at 9600 baud
+
+  SPI.begin();
+
+  telemetry.init();
 
   Serial.println("Starting...");
 
@@ -47,50 +61,67 @@ void setup()
   }
   Serial.println("AHT20 Found");
 
-  if (flash.begin())
-  {
-    Serial.println("Flash Chip Found");
-  }
+  // if (flash.begin())
+  // {
+  //   Serial.println("Flash Chip Found");
+  // }
 
-  Serial.print("Flash Capacity: ");
-  Serial.println(flash.getCapacity());
-  Serial.print("Max Page: ");
-  Serial.println(flash.getMaxPage());
-  Serial.println("[Flash Chip]: Initialization Complete");
+  // Serial.print("Flash Capacity: ");
+  // Serial.println(flash.getCapacity());
+  // Serial.print("Max Page: ");
+  // Serial.println(flash.getMaxPage());
+  // Serial.println("[Flash Chip]: Initialization Complete");
 
-  if (flash.eraseChip())
-  {
-    Serial.println("Chip Erased");
-  }
-  else
-  {
-    Serial.println("Chip Erase Failed");
-  }
+  // if (flash.eraseChip())
+  // {
+  //   Serial.println("Chip Erased");
+  // }
+  // else
+  // {
+  //   Serial.println("Chip Erase Failed");
+  // }
 }
 
 void loop()
 {
-  barometer.checkUpdates(); // apparently this will keep the barometer from delaying code execution
 
-  if (tmp.dataReady() == true && barometer.isReady()) // Check if the sensors have new data
-  {
+  if(timer.check() == 1) {
+    timestamp = counter * (1000/10);
+
+    barometer.checkUpdates(); // apparently this will keep the barometer from delaying code execution
     tempF = tmp.readTempF();
-    aht.getEvent(&humidity, &temp); 
+    aht.getEvent(&humidity, &temp);
     pressure = barometer.GetPres();
-
-    Serial.print("Temperature, Pressure, Humidity from sensors: ");
-    Serial.print(tempF);
-    Serial.print(", ");
-    Serial.print(pressure);
-    Serial.print(", ");
-    Serial.println(humidity.relative_humidity);
 
     structString = String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
     nextAddress += 256;
-    flash.writeStr(nextAddress, structString, true);
-    Serial.print("Temperature, Pressure, Humidity Written to Flash: ");
-    Serial.println(structString);
+    // flash.writeStr(nextAddress, structString, true);
 
-    delay(100); // Run at 10Hz
+    Serial.print("TSP: "); Serial.println(timestamp);
+
+    counter++;
+    timer.reset();
   }
+
+  // if (tmp.dataReady() == true && barometer.isReady()) // Check if the sensors have new data
+  // {
+  //   tempF = tmp.readTempF();
+  //   aht.getEvent(&humidity, &temp); 
+  //   pressure = barometer.GetPres();
+
+  //   Serial.print("Temperature, Pressure, Humidity from sensors: ");
+  //   Serial.print(tempF);
+  //   Serial.print(", ");
+  //   Serial.print(pressure);
+  //   Serial.print(", ");
+  //   Serial.println(humidity.relative_humidity);
+
+  //   structString = String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
+  //   nextAddress += 256;
+  //   flash.writeStr(nextAddress, structString, true);
+  //   Serial.print("Temperature, Pressure, Humidity Written to Flash: ");
+  //   Serial.println(structString);
+
+  //   delay(100); // Run at 10Hz
+  // }
 }
