@@ -62,6 +62,17 @@ TelemetryPacket telemPacket;
 // Declaration for state estimate struct
 StateStruct stateStruct;
 
+// Variables for IMU biases
+float ac_x_error;
+float ac_y_error;
+float ac_z_error;
+float gy_x_error;
+float gy_y_error;
+float gy_z_error;
+
+// Ground level altitude compensation
+float altitude_AGL;
+
 // Variable declarations for filtered state data
 float altitude;
 int16_t vel_vert;
@@ -108,6 +119,81 @@ bool timeout(uint32_t length)
     {
         return false;
     }
+}
+
+void readSensors();
+
+void calibrateIMU() {
+
+    float ac_x_error_sum = 0;
+    float ac_y_error_sum = 0;
+    float ac_z_error_sum = 0;
+    float gy_x_error_sum = 0;
+    float gy_y_error_sum = 0;
+    float gy_z_error_sum = 0;
+  
+    int c = 0;
+    while (c < 1000) {
+        
+        readSensors();
+        
+        //Sum all readings
+        ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
+        ac_y_error_sum = ac_y_error_sum + sensorPacket.ac_y;
+        ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
+        gy_x_error_sum = gy_x_error_sum + sensorPacket.gy_x;
+        gy_y_error_sum = gy_y_error_sum + sensorPacket.gy_y;
+        gy_z_error_sum = gy_z_error_sum + sensorPacket.gy_z;
+
+        c++;
+    }
+
+    //Divide the sum by 12000 to get the error value
+    ac_x_error = ac_x_error_sum / c;
+    ac_y_error = ac_y_error_sum / c;
+    ac_z_error = ac_z_error_sum / c - 1.0;
+    gy_x_error = gy_x_error_sum / c;
+    gy_y_error = gy_y_error_sum / c;
+    gy_z_error = gy_z_error_sum / c;
+
+    Serial.print("ac_x_error: ");
+    Serial.println(ac_x_error);
+    Serial.print("ac_y_error: ");
+    Serial.println(ac_y_error);
+    Serial.print("ac_z_error: ");
+    Serial.println(ac_z_error);
+    Serial.print("gy_x_error: ");
+    Serial.println(gy_x_error);
+    Serial.print("gy_y_error: ");
+    Serial.println(gy_y_error);
+    Serial.print("gy_z_error: ");
+    Serial.println(gy_z_error);
+
+}
+
+float pressureToAltitude(float pressure_mBar);
+
+void calibrateAltitudeAGL() {
+
+    float altitude_error_sum = 0;
+  
+    int c = 0;
+    while (c < 1000) {
+        
+        readSensors();
+        altitude = pressureToAltitude(sensorPacket.Pressure);
+        
+        //Sum all readings
+        altitude_error_sum = altitude_error_sum + altitude;
+
+        c++;
+    }
+
+    //Divide the sum by 10000 to get the error value
+    altitude_AGL = altitude_error_sum / c;
+
+    Serial.print("altitude_AGL: ");
+    Serial.println(altitude_AGL);
 }
 
 // uses updated accel value to determine if the rocket has launched
@@ -288,12 +374,18 @@ void readSensors()
     // Construct sensorPacket struct with raw data from inertial sensors + barometer
     sensorboard.readInertialSensors();
     memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
+    sensorPacket.ac_x -= ac_x_error;
+    sensorPacket.ac_y -= ac_y_error;
+    sensorPacket.ac_z -= ac_z_error;
+    sensorPacket.gy_x -= gy_x_error;
+    sensorPacket.gy_y -= gy_y_error;
+    sensorPacket.gy_z -= gy_z_error;
 
     // Calculate total acceleration
     ac_total = (int16_t)sqrt((sensorPacket.ac_x * sensorPacket.ac_x + sensorPacket.ac_y * sensorPacket.ac_y + sensorPacket.ac_z * sensorPacket.ac_z));
 
     // Compute altitude from pressure
-    altitude = pressureToAltitude(sensorPacket.Pressure);
+    altitude = pressureToAltitude(sensorPacket.Pressure) - altitude_AGL;
 
     // Construct gpsPacket struct with data from GPS
     // TODO: Get GPS data from sensor board class
@@ -396,7 +488,7 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    flash.init();
+    // flash.init();
 
     // Sensor initialization
     Wire.begin();
@@ -412,6 +504,12 @@ void setup()
     {
         Serial.println("Sensor setup failed.");
     }
+
+    // IMU calibration
+    calibrateIMU();
+
+    // Altitude AGL compensation
+    calibrateAltitudeAGL();
 
     // Initialize airbrake servo and set to fully retracted position
     airbrakeServo.init();
@@ -677,7 +775,7 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        logData();
+        // logData();
 
         // Transmit data packet to ground station
         // sendTelemetry();
