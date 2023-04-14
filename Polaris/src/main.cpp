@@ -691,7 +691,7 @@ void loop()
 
         if (counter % 9 == 0)
         {
-            debugPrint();
+            // debugPrint();
         }
 
         counter++;

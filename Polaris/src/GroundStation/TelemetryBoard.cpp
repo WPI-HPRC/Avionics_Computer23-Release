@@ -67,14 +67,17 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     float altitude = rxPacket.altitude;
     uint8_t * altB = (uint8_t *) &altitude;
 
-    float accelX = (float) rxPacket.ac_x / 100.0;
+    float accelX = (float) rxPacket.ac_x / 10;
     uint8_t * acxB = (uint8_t *) &accelX;
 
-    float accelY = (float) rxPacket.ac_y / 100.0;
+    float accelY = (float) rxPacket.ac_y / 10;
     uint8_t * acyB = (uint8_t *) &accelY;
     
-    float accelZ = (float) rxPacket.ac_z / 100.0;
+    float accelZ = (float) rxPacket.ac_z / 10;
     uint8_t * aczB = (uint8_t *) &accelZ;
+
+    // Serial.print("ACX: "); Serial.println(accelZ);
+    // Serial.print("ACX: "); Serial.println(rxPacket.ac_z);
 
     float gyroX = (float) rxPacket.gy_x / 10.0;
     uint8_t * gyX = (uint8_t *) &gyroX;
@@ -109,26 +112,38 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.write(rxPacket.abPct);
 
     Serial.print("ACX");
+    Serial.write(acxB[3]);
+    Serial.write(acxB[2]);
     Serial.write(acxB[1]);
     Serial.write(acxB[0]);
 
     Serial.print("ACY");
+    Serial.write(acyB[3]);
+    Serial.write(acyB[2]);
     Serial.write(acyB[1]);
     Serial.write(acyB[0]);
 
     Serial.print("ACZ");
+    Serial.write(aczB[3]);
+    Serial.write(aczB[2]);
     Serial.write(aczB[1]);
     Serial.write(aczB[0]);
 
     Serial.print("GYX");
+    Serial.write(gyX[3]);
+    Serial.write(gyX[2]);
     Serial.write(gyX[1]);
     Serial.write(gyX[0]);
 
     Serial.print("GYY");
+    Serial.write(gyY[3]);
+    Serial.write(gyY[2]);
     Serial.write(gyY[1]);
     Serial.write(gyY[0]);
     
     Serial.print("GYZ");
+    Serial.write(gyZ[3]);
+    Serial.write(gyZ[2]);
     Serial.write(gyZ[1]);
     Serial.write(gyZ[0]);
 
