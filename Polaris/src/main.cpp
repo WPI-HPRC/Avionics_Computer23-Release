@@ -393,8 +393,8 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    // flash.init();
-    // flash.initialWrite();
+    flash.init();
+    flash.initialWrite();
 
     // Sensor initialization
     Wire.begin();
@@ -682,7 +682,7 @@ void loop()
 
         if (counter % 9 == 0)
         {
-            // debugPrint();
+           debugPrint();
         }
 
         counter++;
