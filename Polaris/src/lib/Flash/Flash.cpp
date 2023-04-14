@@ -25,9 +25,8 @@ void FlashChip::init() {
 
 bool FlashChip::writeStruct(String structString) {
     
-    // nextAddress += 256;
-    Serial.print("SIZE OF THE PACKET's STRING"); Serial.println(flash->sizeofStr(structString));
-    // flash->writeStr(nextAddress, structString);
+    nextAddress += 256;
+    flash->writeStr(nextAddress, structString);
 
     return true;
 }

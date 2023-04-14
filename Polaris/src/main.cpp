@@ -73,6 +73,9 @@ float gy_z_error;
 // Ground level altitude compensation
 float altitude_AGL;
 
+// Flag for boost timer
+bool boostTimerElapsed = false;
+
 // Variable declarations for filtered state data
 float altitude;
 int16_t vel_vert;
@@ -212,8 +215,7 @@ boolean launchDetect()
     sum = sum / 10.0;
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
-    // if (sum > ACCEL_THRESHOLD)
-    if (sensorPacket.ac_z > ACCEL_THRESHOLD)
+    if (sum > ACCEL_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -240,6 +242,8 @@ boolean motorBurnoutDetect()
         sum += transitionBufAcc[i];
     }
     sum = sum / 10.0;
+
+    Serial.print(sum);
 
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
@@ -547,15 +551,18 @@ void loop()
             break;
         case BOOST:
             // Stay in this state for at least 3 seconds to prevent airbrake activation
-            if (boostTimer.check() == 1)
-            {
-                if (motorBurnoutDetect())
-                {
+            if (boostTimer.check() == 1) {
+                boostTimerElapsed = true;
+            }
+
+            if (boostTimerElapsed) {
+                if (motorBurnoutDetect()) {
                     state_start = millis();
                     avionicsState = COAST;
                     break;
                 }
             }
+
             // Coast Contingency 8 second timeout
             // Burnout wasn't detected after 8 seconds, move into coast contingency
             // if (timeout(BOOST_TIMEOUT))
@@ -777,12 +784,13 @@ void loop()
         // Log data packer on Flash chip
         // logData();
 
-        // Transmit data packet to ground station
-        // sendTelemetry();
-
         if (counter % 10 == 0)
         {
-           debugPrint();
+            // Transmit data packet to ground station
+            // sendTelemetry();
+
+            // Print telemPacket to Serial monitor for debugging
+            debugPrint();
         }
 
         counter++;
