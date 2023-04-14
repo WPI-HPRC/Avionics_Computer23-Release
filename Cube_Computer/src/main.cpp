@@ -74,9 +74,9 @@ void setup()
 
 void loop()
 {
-  // barometer.checkUpdates();
+  barometer.checkUpdates(); // apparently this will keep the barometer from delaying code execution
 
-  if (tmp.dataReady() == true) // Function to make sure that there is data ready to be printed, only prints temperature values when data is ready
+  if (tmp.dataReady() == true && barometer.isReady()) // Check if the sensors have new data
   {
     tempF = tmp.readTempF();
     aht.getEvent(&humidity, &temp); 
