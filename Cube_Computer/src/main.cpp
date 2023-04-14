@@ -2,14 +2,11 @@
 #include <Temperature/TMP117.h>
 #include <SPIFlash.h>
 #include <Adafruit_AHTX0.h>
-
-// #include <MS5x.h>
-
-// #include <Flash/Flash.h>
+#include <MS5x.h>
 
 TMP117 tmp; // Initalize sensor
 Adafruit_AHTX0 aht;
-// MS5x barometer(&Wire);
+MS5x barometer(&Wire);
 SPIFlash flash = SPIFlash(7);
 sensors_event_t humidity, temp;
 uint32_t nextAddress = 0;
@@ -21,16 +18,23 @@ void setup()
 {
   Wire.begin();
   Serial.begin(9600); // Start serial communication at 9600 baud
-  // Wire.setClock(400000); // Set clock speed to be the fastest for better communication (fast mode)
 
   while (!Serial)
   {
   }
 
-  Serial.println("TMP117 Example 1: Basic Readings");
+  Serial.println("Starting...");
+
+  while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
+    Serial.println(F("Error connecting to barometer..."));
+  	delay(500);
+  }
+  Serial.println(F("Connected to barometer"));
+  delay(5);
+
   if (tmp.begin() == true) // Function to check if the sensor will correctly self-identify with the proper Device ID/Address
   {
-    Serial.println("Begin");
+    Serial.println("TMP117 Found");
   }
   else
   {
@@ -45,14 +49,7 @@ void setup()
     while (1)
       delay(10);
   }
-  Serial.println("AHT10 or AHT20 found");
-
-  // while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
-  // 	Serial.println(F("Error connecting to barometer..."));
-  // 	delay(500);
-  // }
-  // Serial.println(F("Connected to barometer"));
-  // delay(5);
+  Serial.println("AHT20 found");
 
   if (flash.begin())
   {
@@ -77,9 +74,9 @@ void setup()
 
 void loop()
 {
-  // barometer.checkUpdates();
+  barometer.checkUpdates(); // apparently this will keep the barometer from delaying code execution
 
-  if (tmp.dataReady() == true) // Function to make sure that there is data ready to be printed, only prints temperature values when data is ready
+  if (tmp.dataReady() == true && barometer.isReady()) // Check if the sensors have new data
   {
     tempF = tmp.readTempF();
     aht.getEvent(&humidity, &temp); 
