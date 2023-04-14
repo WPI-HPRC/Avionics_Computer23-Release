@@ -19,17 +19,13 @@ void setup()
   Wire.begin();
   Serial.begin(9600); // Start serial communication at 9600 baud
 
-  while (!Serial)
-  {
-  }
-
   Serial.println("Starting...");
 
   while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
     Serial.println(F("Error connecting to barometer..."));
   	delay(500);
   }
-  Serial.println(F("Connected to barometer"));
+  Serial.println(F("Barometer Found"));
   delay(5);
 
   if (tmp.begin() == true) // Function to check if the sensor will correctly self-identify with the proper Device ID/Address
@@ -49,7 +45,7 @@ void setup()
     while (1)
       delay(10);
   }
-  Serial.println("AHT20 found");
+  Serial.println("AHT20 Found");
 
   if (flash.begin())
   {
@@ -80,7 +76,7 @@ void loop()
   {
     tempF = tmp.readTempF();
     aht.getEvent(&humidity, &temp); 
-    // pressure = barometer.GetPres();
+    pressure = barometer.GetPres();
 
     Serial.print("Temperature, Pressure, Humidity from sensors: ");
     Serial.print(tempF);
@@ -89,17 +85,12 @@ void loop()
     Serial.print(", ");
     Serial.println(humidity.relative_humidity);
 
-    String data = "";
     structString = String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
     nextAddress += 256;
     flash.writeStr(nextAddress, structString, true);
     Serial.print("Temperature, Pressure, Humidity Written to Flash: ");
     Serial.println(structString);
 
-    flash.readStr(nextAddress, data, true);
-    Serial.print("Temperature, Pressure, Humidity Read from Flash:  ");
-    Serial.println(data);
-
-    delay(1000); // Read and log temperature every second
+    delay(100); // Run at 10Hz
   }
 }
