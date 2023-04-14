@@ -91,6 +91,6 @@ void loop()
     Serial.print("Temperature, Pressure, Humidity Written to Flash: ");
     Serial.println(structString);
 
-    delay(10000); 
+    delay(100); // Run at 10Hz
   }
 }
