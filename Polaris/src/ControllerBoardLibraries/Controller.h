@@ -18,9 +18,9 @@ class Controller
         float setInitPressureTemp(float initP, float initT);
 
     private:
-        float length = 1.472; // length of the airbrakes
-        float allowableError = 0.1; // TODO: find out what this should be
-        float targetApogee = 5000; // TODO: change for diff launches
+        float length = 1.472; // [in] length of the airbrakes
+        float allowableError = 0.0001; // TODO: find out what this should be
+        float targetApogee = 3625; // [ft] TODO: change for diff launches
         float area = 3.14159 * 0.078359 * 0.078359; // cross-sectional area
         float g = 9.8;
         float m = 24.829; // mass of the rocket

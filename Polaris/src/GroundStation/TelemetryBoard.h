@@ -31,7 +31,6 @@ struct TelemetryPacket {
     int16_t ac_x;       // X-axis acceleration. Given in m/s^2. Scaled by 100.
     int16_t ac_y;       // Y-axis acceleration. Given in m/s^2. Scaled by 100.
     int16_t ac_z;       // Z-axis acceleration. Given in m/s^2. Scaled by 100.
-    int16_t ac_total;   // Total acceleration. Given in m/s^2.
     int16_t gy_x;       // Angular rotation rate about X-axis. Given in degrees/s. Scaled by 10.
     int16_t gy_y;       // Angular rotation rate about Y-axis. Given in degrees/s. Scaled by 10.
     int16_t gy_z;       // Angular rotation rate about Z-axis. Given in degrees/s. Scaled by 10.

@@ -243,8 +243,6 @@ boolean motorBurnoutDetect()
     }
     sum = sum / 10.0;
 
-    Serial.print(sum);
-
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
     if (sum < 0)
@@ -294,11 +292,25 @@ boolean landingDetect()
     // ALtitude value gets updated in sensor reading fcn
     // add to cyclic buffer
     transitionBufAlt[transitionBufIndAlt] = altitude;
-    // take running average value
-    float prev = transitionBufAlt[(transitionBufIndAlt-1 % 10)];
 
-    // if altitude is near 0 for 20 seconds, landed
-    if (abs(altitude-prev) < 10 && altitude <= LAND_THRESHOLD)
+    // take running average value
+    float avg_sum = 0.0;
+    for (int i = 0; i < 10; i++)
+    {
+        avg_sum += transitionBufAcc[i];
+    }
+    float avg = avg_sum / 10.0;
+
+    // calculate mean difference from average
+    float avg_std_sum = 0.0;
+    for (int i = 0; i < 10; i++)
+    {
+        avg_std_sum += abs(transitionBufAcc[i] - avg);
+    }
+    float avg_std = avg_std_sum / 10.0;
+
+    // if altitude is nearly constant and below landing threshold
+    if (avg_std < 5 && altitude <= LAND_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -357,7 +369,6 @@ void constructTelemPacket()
     telemPacket.ac_x = (int16_t) (sensorPacket.ac_x * 100.0);
     telemPacket.ac_y = (int16_t) (sensorPacket.ac_y * 100.0);
     telemPacket.ac_z = (int16_t) (sensorPacket.ac_z * 100.0);
-    telemPacket.ac_total = ac_total * 100;
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
     telemPacket.gy_x = (int16_t) (sensorPacket.gy_x * 10.0);
@@ -386,7 +397,7 @@ void readSensors()
     sensorPacket.gy_z -= gy_z_error;
 
     // Calculate total acceleration
-    ac_total = (int16_t)sqrt((sensorPacket.ac_x * sensorPacket.ac_x + sensorPacket.ac_y * sensorPacket.ac_y + sensorPacket.ac_z * sensorPacket.ac_z));
+    ac_total = sqrt((sensorPacket.ac_x * sensorPacket.ac_x + sensorPacket.ac_y * sensorPacket.ac_y + sensorPacket.ac_z * sensorPacket.ac_z));
 
     // Compute altitude from pressure
     altitude = pressureToAltitude(sensorPacket.Pressure) - altitude_AGL;
@@ -401,7 +412,7 @@ void readSensors()
 // Write data (telemPacket) to flash chip
 void logData()
 {
-    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.ac_total) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
     
     flash.writeStruct(structString);
 }
@@ -416,7 +427,7 @@ void sendTelemetry()
 //  Output: stateStruct (currently vertical, lateral, and total veloctity)
 void doStateEstimation()
 {
-    stateStruct = stateEstimator.getState(altitude, ac_total);
+    stateStruct = stateEstimator.getState(altitude, sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z);
 }
 
 // Compute airbrake actuation percent from controller class.
@@ -601,7 +612,7 @@ void loop()
         //     break;
         case COAST:
 
-            doAirbrakeControls();
+            // doAirbrakeControls();
 
             if (apogeeDetect())
             {
@@ -652,7 +663,7 @@ void loop()
             else
             {
                 int16_t avgDescentRate = sumDrogueDescentVel / droguePollCount;
-                if (avgDescentRate >= DROGUE_DESCENT_THRESHOLD)
+                if (avgDescentRate <= DROGUE_DESCENT_THRESHOLD)
                 {
                     state_start = millis();
                     avionicsState = DROGUE_DESCENT;
@@ -710,7 +721,7 @@ void loop()
             else
             {
                 int16_t avgDescentRate = sumMainDescentVel / mainPollCount;
-                if (avgDescentRate >= MAIN_DESCENT_THRESHOLD)
+                if (avgDescentRate <= MAIN_DESCENT_THRESHOLD)
                 {
                     state_start = millis();
                     avionicsState = MAIN_DESCENT;
