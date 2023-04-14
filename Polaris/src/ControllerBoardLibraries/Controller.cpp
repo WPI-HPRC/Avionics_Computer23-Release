@@ -9,7 +9,7 @@ Controller::Controller() {
 
 // takes in altitude, vertical and lateral velocity
 // returns airbrake extension in a range from 0-100
-uint8_t Controller::calcAbPct(float alt, int8_t velLat, int8_t velVert) {
+uint8_t Controller::calcAbPct(float alt, float velLat, float velVert) {
     
     // calculate dynamic pressure and drag force
     float dynamicPressure = pressure_at_altitude(pZero,alt,tZero);
@@ -31,7 +31,7 @@ uint8_t Controller::calcAbPct(float alt, int8_t velLat, int8_t velVert) {
     return extensionPct;
 }
 
-float Controller::targetDragCoefficient(float alt, int8_t velLat, int8_t velVert, int8_t dt, float pZero, float altZero, float tZero) {    
+float Controller::targetDragCoefficient(float alt, float velLat, float velVert, int8_t dt, float pZero, float altZero, float tZero) {    
     float testCD = cd; // data type? lol 
     // calculate what our predicted apogee will be rn
     float apogee = rk4(alt,velLat,velVert,dt,testCD,pZero,altZero,tZero);
@@ -59,7 +59,7 @@ float Controller::targetDragCoefficient(float alt, int8_t velLat, int8_t velVert
     return testCD;
 }
 
-float Controller::rk4(float alt, int8_t velLat, int8_t velVert, int8_t dt, float currCD, float pZero, float altZero, float tZero) {    
+float Controller::rk4(float alt, float velLat, float velVert, int8_t dt, float currCD, float pZero, float altZero, float tZero) {    
     // init k1,k2,k3,k4 as arrays
     float xCurr[3] = {alt,velLat,velVert}; // probably not right
     float w = 0.4826; 

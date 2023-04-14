@@ -435,15 +435,8 @@ void doStateEstimation()
 //  Output: airbrake actuation level as a percent from 0 to 100
 void doAirbrakeControls()
 {
-    // Serial.println("");
-    // Serial.println("Attempting airbrake controls...");
-
-    abPct = controller.calcAbPct(altitude, stateStruct.vel_vert, stateStruct.vel_lat);
+    abPct = controller.calcAbPct(altitude, stateStruct.vel_lat, stateStruct.vel_vert);
     airbrakeServo.setPosition(abPct);
-
-    // Serial.print("Completed. Airbrake extension: ");
-    // Serial.print(abPct);
-    // Serial.println("%");
 }
 
 // Send a message to place devices into low power mode and possibly decrease datalogging rate
@@ -505,18 +498,21 @@ void setup()
     // Communications setup
     Serial.begin(57600);
 
+    // Initialize airbrake servo and set to fully retracted position
+    airbrakeServo.init();
+    airbrakeServo.setPosition(0);
+
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
-    // flash.init();
+    flash.init();
 
     // Sensor initialization
     Wire.begin();
     Wire.setClock(400000);
     SPI.begin();
-
 
     if (sensorboard.setup())
     {
@@ -533,9 +529,8 @@ void setup()
     // Altitude AGL compensation
     calibrateAltitudeAGL();
 
-    // Initialize airbrake servo and set to fully retracted position
-    airbrakeServo.init();
-    airbrakeServo.setPosition(0);
+    // Set initial conditions for controller class
+    controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
 }
@@ -809,7 +804,7 @@ void loop()
             sendTelemetry();
 
             // Print telemPacket to Serial monitor for debugging
-            debugPrint();
+            // debugPrint();
         }
 
         counter++;

@@ -8,9 +8,9 @@ class Controller
 {
     public:
         Controller();
-        uint8_t calcAbPct(float alt, int8_t velLat, int8_t velY);
-        float targetDragCoefficient(float alt, int8_t velLat, int8_t velY, int8_t dt, float P, float altZero, float tZero);
-        float rk4(float alt, int8_t velLat, int8_t velY, int8_t dt, float currCD, float P, float altZero, float tZero);
+        uint8_t calcAbPct(float alt, float velLat, float velY);
+        float targetDragCoefficient(float alt, float velLat, float velY, int8_t dt, float P, float altZero, float tZero);
+        float rk4(float alt, float velLat, float velY, int8_t dt, float currCD, float P, float altZero, float tZero);
         float calcLatAcc(float velLat, float v, float currCD, float rho, float A);
         float calcVertAcc(float velY, float v, float currCD, float rho, float A);
         float density(float alt, float tZero, float p);
