@@ -30,6 +30,7 @@ ServoDriver airbrakeServo(SERVO_PIN); // Instantiate airbrake servo
 Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 unsigned long state_start;                        // must be set to millis() when entering a new state
+uint32_t timestamp;                               // timestamp for telemetry packet
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
@@ -196,23 +197,17 @@ boolean apogeeDetect()
     return false;
 }
 
+// detect landing by registering when the altitude doesn't change much
 boolean landingDetect()
 {
     // ALtitude value gets updated in sensor reading fcn
     // add to cyclic buffer
     transitionBufAlt[transitionBufIndAlt] = altitude;
     // take running average value
-    float sum = 0.0;
-    for (int i = 0; i < 10; i++)
-    {
-        sum += transitionBufAlt[i];
-    }
-    sum = sum / 10.0;
-
-    transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
+    float prev = transitionBufAlt[(transitionBufIndAlt-1 % 10)];
 
     // if altitude is near 0 for 20 seconds, landed
-    if (sum <= LAND_THRESHOLD)
+    if (abs(altitude-prev) < 10 && altitude <= LAND_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -222,6 +217,7 @@ boolean landingDetect()
         Serial.println("Landing detected!");
         return true;
     }
+    transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
 
     return false;
 }
@@ -251,7 +247,8 @@ void constructTelemPacket()
 {
 
     // Timestamp
-    telemPacket.timestamp = millis(); // TODO: Maybe change this to be time after launch detect?
+    timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
+    telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
@@ -389,10 +386,10 @@ void debugPrint()
 void setup()
 {
     // Communications setup
-    Serial.begin(9600);
+    Serial.begin(57600);
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization

@@ -67,22 +67,22 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     float altitude = rxPacket.altitude;
     uint8_t * altB = (uint8_t *) &altitude;
 
-    int16_t accelX = rxPacket.ac_x;
+    float accelX = (float) rxPacket.ac_x / 100.0;
     uint8_t * acxB = (uint8_t *) &accelX;
 
-    int16_t accelY = rxPacket.ac_y;
+    float accelY = (float) rxPacket.ac_y / 100.0;
     uint8_t * acyB = (uint8_t *) &accelY;
     
-    int16_t accelZ = rxPacket.ac_z;
+    float accelZ = (float) rxPacket.ac_z / 100.0;
     uint8_t * aczB = (uint8_t *) &accelZ;
 
-    int16_t gyroX = rxPacket.gy_x;
+    float gyroX = (float) rxPacket.gy_x / 10.0;
     uint8_t * gyX = (uint8_t *) &gyroX;
 
-    int16_t gyroY = rxPacket.gy_x;
+    float gyroY = (float) rxPacket.gy_x / 10.0;
     uint8_t * gyY = (uint8_t *) &gyroY;
     
-    int16_t gyroZ = rxPacket.gy_z;
+    float gyroZ = (float) rxPacket.gy_z / 10.0;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
 
     Serial.print(PACKET_BEG);
