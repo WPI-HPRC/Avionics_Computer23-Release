@@ -36,7 +36,7 @@ Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BO
 
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
-int16_t transitionBufAcc[10];
+float transitionBufAcc[10];
 uint8_t transitionBufIndAcc = 0;
 
 // Vertical velocity buffer
@@ -124,7 +124,8 @@ boolean launchDetect()
     sum = sum / 10.0;
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
-    if (sum > ACCEL_THRESHOLD)
+    // if (sum > ACCEL_THRESHOLD)
+    if (sensorPacket.ac_z > ACCEL_THRESHOLD)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -166,7 +167,6 @@ boolean motorBurnoutDetect()
     }
     return false;
 }
-
 
 boolean apogeeDetect()
 {
@@ -341,7 +341,6 @@ void lowPowerMode()
 // Print telemPacket to Serial monitor for debugging purposes
 void debugPrint()
 {
-    // Michael Worskid
     Serial.print("Timestamp: ");
     Serial.print(telemPacket.timestamp);
     Serial.println(" ms");
@@ -357,14 +356,14 @@ void debugPrint()
     Serial.print(telemPacket.abPct);
     Serial.println("%");
     Serial.print("Accel-X: ");
-    Serial.print((float) telemPacket.ac_x / 100);
-    Serial.println(" m/s^2");
+    Serial.print((float) telemPacket.ac_x / 100.0);
+    Serial.println(" g");
     Serial.print("Accel-Y: ");
-    Serial.print((float) telemPacket.ac_y / 100);
-    Serial.println(" m/s^2");
+    Serial.print((float) telemPacket.ac_y / 100.0);
+    Serial.println("g");
     Serial.print("Accel-Z: ");
-    Serial.print((float) telemPacket.ac_z / 100);
-    Serial.println(" m/s^2");
+    Serial.print((float) telemPacket.ac_z / 100.0);
+    Serial.println(" g");
     Serial.print("Gyro-X: ");
     Serial.print(telemPacket.gy_x / 10.0);
     Serial.println(" degrees/s");
@@ -375,14 +374,13 @@ void debugPrint()
     Serial.print(telemPacket.gy_z / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Vertical velocity: ");
-    // Michael was here
-    Serial.print(telemPacket.vel_vert);
+    Serial.print(stateStruct.vel_vert);
     Serial.println(" m/s");
     Serial.print("Lateral velocity: ");
-    Serial.print(telemPacket.vel_lat);
+    Serial.print(stateStruct.vel_lat);
     Serial.println(" m/s");
     Serial.print("Total velocity: ");
-    Serial.print(telemPacket.vel_total);
+    Serial.print(stateStruct.vel_total);
     Serial.println(" m/s");
     Serial.println("");
 }
@@ -423,7 +421,6 @@ void setup()
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
 }
 
-// fuck you michael
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
 void loop()
 {
@@ -475,12 +472,12 @@ void loop()
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
             // Acceleration is greater than 10g's
-            if ((ac_total > ((10 * G) * 100)) || (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION))
-            {
-                state_start = millis();
-                avionicsState = COAST;
-                break;
-            }
+            // if ((ac_total > 10) || (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION))
+            // {
+            //     state_start = millis();
+            //     avionicsState = ABORT;
+            //     break;
+            // }
 
             break;
         // case COAST_CONTINGENCY:
@@ -504,6 +501,7 @@ void loop()
 
             if (apogeeDetect())
             {
+                abPct = 0;
                 airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
                 // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
                 state_start = millis();
@@ -521,16 +519,16 @@ void loop()
 
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
-            if (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION)
-            {
-                state_start = millis();
-                avionicsState = ABORT;
-                break;
-            }
+            // if (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION)
+            // {
+            //     state_start = millis();
+            //     avionicsState = ABORT;
+            //     break;
+            // }
 
             // Acceleration is greater than 10g's
             // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
-            if (ac_total > ((10 * G) * 100))
+            if (ac_total > 10)
             {
                 if (timeout(13000)) // currently 13 seconds
                 {
@@ -542,8 +540,6 @@ void loop()
             }
             break;
         case DROGUE_DEPLOY:
-            // TODO: Check for nominal drogue descent rate, then move into DROGUE_DESCENT state
-            // Poll for a second?
             if (!timeout(1000))
             {
                 sumDrogueDescentVel += stateStruct.vel_vert;
@@ -685,11 +681,11 @@ void loop()
         // logData();
 
         // Transmit data packet to ground station
-        sendTelemetry();
+        // sendTelemetry();
 
         if (counter % 9 == 0)
         {
-            debugPrint();
+           // debugPrint();
         }
 
         counter++;
