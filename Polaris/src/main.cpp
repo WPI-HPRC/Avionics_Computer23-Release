@@ -16,6 +16,7 @@ StateEstimator stateEstimator;
 
 // Flash chip instantiation
 FlashChip flash = FlashChip();
+String structString = "";
 
 // Telemetry Board class
 TelemetryBoard telemBoard = TelemetryBoard();
@@ -304,7 +305,9 @@ void readSensors()
 // Write data (telemPacket) to flash chip
 void logData()
 {
-    flash.writeStruct(&telemPacket, sizeof(telemPacket));
+    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.ac_total) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    
+    flash.writeStruct(structString);
 }
 
 void sendTelemetry()
@@ -394,7 +397,6 @@ void setup()
 
     // Flash memory initialization
     flash.init();
-    flash.initialWrite();
 
     // Sensor initialization
     Wire.begin();
@@ -675,12 +677,12 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        // logData();
+        logData();
 
         // Transmit data packet to ground station
         // sendTelemetry();
 
-        if (counter % 9 == 0)
+        if (counter % 10 == 0)
         {
            debugPrint();
         }
