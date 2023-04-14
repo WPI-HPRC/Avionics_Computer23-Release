@@ -61,25 +61,25 @@ void setup()
   }
   Serial.println("AHT20 Found");
 
-  // if (flash.begin())
-  // {
-  //   Serial.println("Flash Chip Found");
-  // }
+  if (flash.begin())
+  {
+    Serial.println("Flash Chip Found");
+  }
 
-  // Serial.print("Flash Capacity: ");
-  // Serial.println(flash.getCapacity());
-  // Serial.print("Max Page: ");
-  // Serial.println(flash.getMaxPage());
-  // Serial.println("[Flash Chip]: Initialization Complete");
+  Serial.print("Flash Capacity: ");
+  Serial.println(flash.getCapacity());
+  Serial.print("Max Page: ");
+  Serial.println(flash.getMaxPage());
+  Serial.println("[Flash Chip]: Initialization Complete");
 
-  // if (flash.eraseChip())
-  // {
-  //   Serial.println("Chip Erased");
-  // }
-  // else
-  // {
-  //   Serial.println("Chip Erase Failed");
-  // }
+  if (flash.eraseChip())
+  {
+    Serial.println("Chip Erased");
+  }
+  else
+  {
+    Serial.println("Chip Erase Failed");
+  }
 }
 
 void loop()
@@ -95,33 +95,12 @@ void loop()
 
     structString = String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
     nextAddress += 256;
-    // flash.writeStr(nextAddress, structString, true);
+    flash.writeStr(nextAddress, structString, true);
 
     Serial.print("TSP: "); Serial.println(timestamp);
+    telemetry.onLoop(timestamp);
 
     counter++;
     timer.reset();
   }
-
-  // if (tmp.dataReady() == true && barometer.isReady()) // Check if the sensors have new data
-  // {
-  //   tempF = tmp.readTempF();
-  //   aht.getEvent(&humidity, &temp); 
-  //   pressure = barometer.GetPres();
-
-  //   Serial.print("Temperature, Pressure, Humidity from sensors: ");
-  //   Serial.print(tempF);
-  //   Serial.print(", ");
-  //   Serial.print(pressure);
-  //   Serial.print(", ");
-  //   Serial.println(humidity.relative_humidity);
-
-  //   structString = String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
-  //   nextAddress += 256;
-  //   flash.writeStr(nextAddress, structString, true);
-  //   Serial.print("Temperature, Pressure, Humidity Written to Flash: ");
-  //   Serial.println(structString);
-
-  //   delay(100); // Run at 10Hz
-  // }
 }

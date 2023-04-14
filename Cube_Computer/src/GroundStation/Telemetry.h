@@ -31,4 +31,6 @@ class Telemetry {
         TransceiverState state = RX; // Default to RX
 
         SX127XLT radio;
+
+        uint8_t packetLen;
 };
