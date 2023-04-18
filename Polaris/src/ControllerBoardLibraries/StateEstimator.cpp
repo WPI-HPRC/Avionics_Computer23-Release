@@ -20,7 +20,7 @@ StateStruct StateEstimator::getState(float alt, float ac_x, float ac_y, float ac
   // Calculate velocity in each axis by integrating acceleration over time
   vel_x += ac_x * timeStep;
   vel_y += ac_y * timeStep;
-  vel_z += (ac_z - 1.0) * timeStep;
+  vel_z += ac_z * timeStep;
 
   // Calculate magnitude of total velocity
   avgBuffer[avgBuffInd] = sqrt((vel_x * vel_x + vel_y *vel_y + vel_z * vel_z));

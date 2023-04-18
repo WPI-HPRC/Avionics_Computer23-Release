@@ -26,5 +26,6 @@ const uint32_t DROGUE_DESCENT_TIMEOUT = 120 * SECONDS;
 const uint16_t MAIN_DEPLOY_TIMEOUT = 10 * SECONDS;
 const uint32_t MAIN_DESCENT_TIMEOUT = 100 * SECONDS;
 
-// Airbrake servo pin
+// Pin declarations
+const int LED_PIN = 6;
 const int SERVO_PIN = 7;
