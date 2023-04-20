@@ -8,6 +8,9 @@
 #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
 
+long loopTime;
+long previousTime;
+
 // Airbrake controller class
 Controller controller;
 
@@ -78,9 +81,6 @@ bool boostTimerElapsed = false;
 
 // Variable declarations for filtered state data
 float altitude;
-int16_t vel_vert;
-int16_t vel_lat;
-int16_t vel_total;
 int16_t ac_total;
 uint8_t abPct;
 
@@ -108,7 +108,7 @@ enum AvionicsState
     ABORT
 };
 
-AvionicsState avionicsState = STARTUP;
+AvionicsState avionicsState = COAST;
 
 // checks whether the state has timed out yet
 bool timeout(uint32_t length)
@@ -138,7 +138,8 @@ void calibrateIMU() {
     int c = 0;
     while (c < 1000) {
         
-        readSensors();
+        sensorboard.readInertialSensors();
+        memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
         
         //Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
@@ -351,7 +352,7 @@ void constructTelemPacket()
 
     // Timestamp
     timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
-    telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
+    telemPacket.timestamp = millis(); // TODO: Maybe change this to be time after launch detect?
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
@@ -376,9 +377,9 @@ void constructTelemPacket()
     telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t)vel_vert;
-    telemPacket.vel_lat = (int16_t)vel_lat;
-    telemPacket.vel_total = (int16_t)vel_total;
+    telemPacket.vel_vert = (int16_t) (stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t) (stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t) (stateStruct.vel_total * 100.0);
 
     // TODO: Add GPS to telemPacket
 }
@@ -389,9 +390,10 @@ void readSensors()
     // Construct sensorPacket struct with raw data from inertial sensors + barometer
     sensorboard.readInertialSensors();
     memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
+
     sensorPacket.ac_x -= ac_x_error;
     sensorPacket.ac_y -= ac_y_error;
-    sensorPacket.ac_z -= ac_z_error;
+    sensorPacket.ac_z -= (1.0 + ac_z_error);
     sensorPacket.gy_x -= gy_x_error;
     sensorPacket.gy_y -= gy_y_error;
     sensorPacket.gy_z -= gy_z_error;
@@ -463,13 +465,13 @@ void debugPrint()
     Serial.print(telemPacket.abPct);
     Serial.println("%");
     Serial.print("Accel-X: ");
-    Serial.print((float) telemPacket.ac_x / 100.0);
+    Serial.print(telemPacket.ac_x / 100.0);
     Serial.println(" g");
     Serial.print("Accel-Y: ");
-    Serial.print((float) telemPacket.ac_y / 100.0);
+    Serial.print(telemPacket.ac_y / 100.0);
     Serial.println(" g");
     Serial.print("Accel-Z: ");
-    Serial.print((float) telemPacket.ac_z / 100.0);
+    Serial.print(telemPacket.ac_z / 100.0);
     Serial.println(" g");
     Serial.print("Gyro-X: ");
     Serial.print(telemPacket.gy_x / 10.0);
@@ -481,15 +483,36 @@ void debugPrint()
     Serial.print(telemPacket.gy_z / 10.0);
     Serial.println(" degrees/s");
     Serial.print("Vertical velocity: ");
-    Serial.print(stateStruct.vel_vert);
+    Serial.print(telemPacket.vel_vert / 100.0);
     Serial.println(" m/s");
     Serial.print("Lateral velocity: ");
-    Serial.print(stateStruct.vel_lat);
+    Serial.print(telemPacket.vel_lat / 100.0);
     Serial.println(" m/s");
     Serial.print("Total velocity: ");
-    Serial.print(stateStruct.vel_total);
+    Serial.print(telemPacket.vel_total / 100.0);
     Serial.println(" m/s");
     Serial.println("");
+}
+
+void LEDon() {
+    digitalWrite(LED_PIN, HIGH);
+}
+
+void LEDoff() {
+    digitalWrite(LED_PIN, LOW);
+}
+
+void initLED() {
+    pinMode(LED_PIN, OUTPUT);
+    LEDon();
+}
+
+void blinkLED() {
+    if (counter % 100 == 0) {
+        LEDon();
+    } else if (counter % 100 == 10) {
+        LEDoff();
+    }
 }
 
 // Built-in Arduino setup function. Performs initilization tasks on startup.
@@ -497,6 +520,9 @@ void setup()
 {
     // Communications setup
     Serial.begin(57600);
+
+    // LED for debugging
+    initLED();
 
     // Initialize airbrake servo and set to fully retracted position
     airbrakeServo.init();
@@ -507,7 +533,7 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    flash.init();
+    // flash.init();
 
     // Sensor initialization
     Wire.begin();
@@ -532,7 +558,16 @@ void setup()
     // Set initial conditions for controller class
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
-    // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
+    LEDoff();
+}
+
+void printLoopTime() {
+    long currentTime = millis();
+    loopTime = currentTime - previousTime;
+    previousTime = currentTime;
+    Serial.print("Loop time: ");
+    Serial.print(loopTime);
+    Serial.println(" ms");
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -789,6 +824,8 @@ void loop()
             break;
         }
 
+        blinkLED();
+
         // Pull data from accelerometer, rate gyroscope, magnetometer, and GPS
         readSensors();
 
@@ -806,6 +843,8 @@ void loop()
             // Print telemPacket to Serial monitor for debugging
             // debugPrint();
         }
+
+        printLoopTime();
 
         counter++;
         timer.reset();

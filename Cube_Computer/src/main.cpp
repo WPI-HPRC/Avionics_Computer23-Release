@@ -5,7 +5,7 @@
 #include <MS5x.h>
 #include <GroundStation/Telemetry.h>
 
-#include ".\lib\Metro\Metro.h"
+#include <./lib/Metro/Metro.h>
 #include "Config.h"
 
 Metro timer = Metro(1000 / 10);
@@ -33,7 +33,7 @@ void setup()
 
   telemetry.init();
 
-  Serial.println("Starting...");
+  Serial.println(" ");
 
   while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
     Serial.println(F("Error connecting to barometer..."));
