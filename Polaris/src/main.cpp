@@ -40,6 +40,9 @@ Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in S
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
 Metro coastTimer = Metro(COAST_MIN_LENGTH);       // 10 second timer to ensure COAST state is locked before possibility of state change
 
+bool boostFlag = false;
+bool coastFlag = false;
+
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
 float transitionBufAcc[10];
@@ -610,6 +613,11 @@ void loop()
             // Stay in this state for at least 3 seconds to prevent airbrake activation
             if (boostTimer.check() == 1)
             {
+                boostFlag = true;
+            }
+
+            if (boostFlag)
+            {
                 if (motorBurnoutDetect())
                 {
                     state_start = millis();
@@ -662,7 +670,12 @@ void loop()
             // Lock out apogee detection for 10 seconds to prevent false apogee detection
             if (coastTimer.check() == 1)
             {
-                Serial.println("Apogee detection enabled!");
+                coastFlag = true;
+            }
+
+            if (coastFlag)
+            {
+                // Serial.println("Apogee detection enabled!");
                 if (apogeeDetect())
                 {
                     abPct = 0;
@@ -848,7 +861,7 @@ void loop()
         // Log data packer on Flash chip
         logData();
 
-        if (counter % 10 == 0)
+        if (counter % 2 == 0)
         {
             // Transmit data packet to ground station
             sendTelemetry();

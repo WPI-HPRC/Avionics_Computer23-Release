@@ -5,14 +5,14 @@ const int DROGUE_DESCENT_THRESHOLD = 30;   // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in meters
 
-const int HZ_10 = 10;
-const int HZ_20 = 20;
-const int HZ_100 = 100;
+const float HZ_10 = 10.0;
+const float HZ_21 = 20.25;
+const float HZ_100 = 100.0;
 
-const int CONVERSION = 1000;
+const float CONVERSION = 1000.0;
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 // Set this to the desired Hz for the loop
-const int LOOP_FREQUENCY = HZ_20;
+const float LOOP_FREQUENCY = HZ_21;
 const double METER_CONVERSION = 0.3048; // conversion from feet to meters
 
 // Timer constants
