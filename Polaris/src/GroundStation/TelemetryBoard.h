@@ -60,6 +60,10 @@ public:
 
     void setState(TransceiverState newState);
 
+    TransceiverState getState() {
+        return transmitterState;
+    }
+
 private:
 
     constexpr static int PIN_M0 = 2;

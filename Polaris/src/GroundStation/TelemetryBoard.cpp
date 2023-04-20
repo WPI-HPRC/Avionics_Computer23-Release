@@ -67,13 +67,13 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     float altitude = rxPacket.altitude;
     uint8_t * altB = (uint8_t *) &altitude;
 
-    float accelX = (float) rxPacket.ac_x / 10;
+    float accelX = (float) rxPacket.ac_x / 100.0;
     uint8_t * acxB = (uint8_t *) &accelX;
 
-    float accelY = (float) rxPacket.ac_y / 10;
+    float accelY = (float) rxPacket.ac_y / 100.0;
     uint8_t * acyB = (uint8_t *) &accelY;
     
-    float accelZ = (float) rxPacket.ac_z / 10;
+    float accelZ = (float) rxPacket.ac_z / 100.0;
     uint8_t * aczB = (uint8_t *) &accelZ;
 
     // Serial.print("ACX: "); Serial.println(accelZ);
@@ -87,6 +87,9 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     
     float gyroZ = (float) rxPacket.gy_z / 10.0;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
+
+    int16_t totalVel = rxPacket.vel_total / 100.0;
+    uint8_t * tvB = (uint8_t *) &totalVel;
 
     Serial.print(PACKET_BEG);
     
@@ -146,6 +149,10 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.write(gyZ[2]);
     Serial.write(gyZ[1]);
     Serial.write(gyZ[0]);
+
+    Serial.print("VEL");
+    Serial.write(tvB[1]);
+    Serial.write(tvB[0]);
 
     Serial.print(PACKET_END);
 }
