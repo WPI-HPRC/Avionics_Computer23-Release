@@ -33,7 +33,7 @@ void setup()
 
   telemetry.init();
 
-  Serial.println("Starting...");
+  Serial.println(" ");
 
   while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
     Serial.println(F("Error connecting to barometer..."));
