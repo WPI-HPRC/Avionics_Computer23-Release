@@ -249,7 +249,7 @@ boolean motorBurnoutDetect()
     sum = sum / 10.0;
 
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
-    // compare running average value to defined threshold
+    // If avg acceleration is < 0
     if (sum < 0)
     {
         for (int j = 0; j < 10; j++)
@@ -636,6 +636,8 @@ void loop()
             //     avionicsState = COAST_CONTINGENCY;
             //     break;
             // }
+
+            // TODO Do we need a state timeout to COAST after 7 seconds?
 
             // ABORT Case
             // Pitch or roll exceeds 30 degrees from vertical
