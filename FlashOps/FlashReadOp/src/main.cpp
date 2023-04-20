@@ -7,14 +7,14 @@
 SPIFlash flash = SPIFlash(7); // 7 for Cube Board, 10 for Polaris
 uint32_t nextAddress;
 String structString = "";
-// String addressString = "";
-// String read = "";
+String addressString = "";
+String read = "";
 
 
 void setup()
 {
   Wire.begin();
-  Serial.begin(9600); // Start serial communication at 9600 baud
+  Serial.begin(9600); 
 
   while (!Serial)
   {
@@ -32,42 +32,47 @@ void setup()
   Serial.print("Max Page: ");
   Serial.println(flash.getMaxPage());
 
-  // flash.readStr(0, read); 
-  // Serial.println(read);
+  delay(1000);
 
-  // nextAddress = (uint32_t)(read.toInt());
-  // Serial.print("Next Address: "); 
-  // Serial.println(nextAddress);
 
-  // // change the address at the beginning of the flash 5 times 
-  // for (int i = 0; i < 5; i++)
-  // {
-  //   nextAddress += 256;
-  //   addressString = String(nextAddress);
-  //   flash.eraseSection(0, 256);
-  //   flash.writeStr(0, addressString);
-  //   Serial.print("Next Address: "); 
-  //   flash.readStr(0, read); 
-  //   Serial.println(read);
-  //   delay(1000);
-  // }
+  // All of this in setup should be removed later when reading 
 
-  // Serial.println(nextAddress);
+  flash.readStr(0, read);
+  Serial.println(read);
 
-  // flash.readStr(0, read); 
-  // Serial.println(read);
 
 }
 
 void loop()
 {
-    nextAddress += 256;
-    String data = "";
 
-    Serial.print("Data from Flash:  "); // For Polaris
-    flash.readStr(nextAddress, data, true);
-    Serial.println(data);
+  // ====================== Reading Flash ======================
+  // nextAddress += 256; // This comes first cuz the first page is for the address 
+  // String data = "";
 
-    delay(10); 
+  // Serial.print("Data from Flash:  "); // For Polaris
+  // flash.readStr(nextAddress, data, true);
+  // Serial.println(data);
 
+  // delay(10); 
+
+  // ====================== Testing Flash ======================
+
+  flash.readStr(0, read); 
+  Serial.println(read);
+
+  nextAddress = (uint32_t)(read.toInt());
+  Serial.print("Next Address: "); 
+  Serial.println(nextAddress);
+
+  nextAddress += 256;
+  addressString = String(nextAddress);
+  flash.eraseSection(0, 256);
+  flash.writeStr(0, addressString);
+  flash.readStr(0, read);
+  Serial.print("Address String: ");
+  Serial.println(read);
+  Serial.println(" ");
+
+  delay(1000);
 }
