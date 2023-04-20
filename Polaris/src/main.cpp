@@ -38,6 +38,7 @@ uint32_t timestamp;                               // timestamp for telemetry pac
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
+Metro coastTimer = Metro(COAST_MIN_LENGTH);       // 10 second timer to ensure COAST state is locked before possibility of state change
 
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
@@ -75,9 +76,6 @@ float gy_z_error;
 
 // Ground level altitude compensation
 float altitude_AGL;
-
-// Flag for boost timer
-bool boostTimerElapsed = false;
 
 // Variable declarations for filtered state data
 float altitude;
@@ -126,7 +124,8 @@ bool timeout(uint32_t length)
 
 void readSensors();
 
-void calibrateIMU() {
+void calibrateIMU()
+{
 
     float ac_x_error_sum = 0;
     float ac_y_error_sum = 0;
@@ -134,14 +133,15 @@ void calibrateIMU() {
     float gy_x_error_sum = 0;
     float gy_y_error_sum = 0;
     float gy_z_error_sum = 0;
-  
+
     int c = 0;
-    while (c < 1000) {
-        
+    while (c < 1000)
+    {
+
         sensorboard.readInertialSensors();
         memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
-        
-        //Sum all readings
+
+        // Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
         ac_y_error_sum = ac_y_error_sum + sensorPacket.ac_y;
         ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
@@ -152,7 +152,7 @@ void calibrateIMU() {
         c++;
     }
 
-    //Divide the sum by 12000 to get the error value
+    // Divide the sum by 12000 to get the error value
     ac_x_error = ac_x_error_sum / c;
     ac_y_error = ac_y_error_sum / c;
     ac_z_error = ac_z_error_sum / c - 1.0;
@@ -172,28 +172,29 @@ void calibrateIMU() {
     Serial.println(gy_y_error);
     Serial.print("gy_z_error: ");
     Serial.println(gy_z_error);
-
 }
 
 float pressureToAltitude(float pressure_mBar);
 
-void calibrateAltitudeAGL() {
+void calibrateAltitudeAGL()
+{
 
     float altitude_error_sum = 0;
-  
+
     int c = 0;
-    while (c < 2000) {
-        
+    while (c < 2000)
+    {
+
         readSensors();
         altitude = pressureToAltitude(sensorPacket.Pressure);
-        
-        //Sum all readings
+
+        // Sum all readings
         altitude_error_sum = altitude_error_sum + altitude;
 
         c++;
     }
 
-    //Divide the sum -to get the error value
+    // Divide the sum -to get the error value
     altitude_AGL = altitude_error_sum / c;
 
     Serial.print("altitude_AGL: ");
@@ -351,7 +352,7 @@ void constructTelemPacket()
 {
 
     // Timestamp
-    timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
+    timestamp = counter * (CONVERSION / LOOP_FREQUENCY);
     telemPacket.timestamp = millis(); // TODO: Maybe change this to be time after launch detect?
 
     // State
@@ -367,19 +368,19 @@ void constructTelemPacket()
     telemPacket.abPct = abPct;
 
     // Acceleration (XYZ) [m/s^2] - Scaled by 100x for transmission
-    telemPacket.ac_x = (int16_t) (sensorPacket.ac_x * 100.0);
-    telemPacket.ac_y = (int16_t) (sensorPacket.ac_y * 100.0);
-    telemPacket.ac_z = (int16_t) (sensorPacket.ac_z * 100.0);
+    telemPacket.ac_x = (int16_t)(sensorPacket.ac_x * 100.0);
+    telemPacket.ac_y = (int16_t)(sensorPacket.ac_y * 100.0);
+    telemPacket.ac_z = (int16_t)(sensorPacket.ac_z * 100.0);
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
-    telemPacket.gy_x = (int16_t) (sensorPacket.gy_x * 10.0);
-    telemPacket.gy_y = (int16_t) (sensorPacket.gy_y * 10.0);
-    telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
+    telemPacket.gy_x = (int16_t)(sensorPacket.gy_x * 10.0);
+    telemPacket.gy_y = (int16_t)(sensorPacket.gy_y * 10.0);
+    telemPacket.gy_z = (int16_t)(sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t) (stateStruct.vel_vert * 100.0);
-    telemPacket.vel_lat = (int16_t) (stateStruct.vel_lat * 100.0);
-    telemPacket.vel_total = (int16_t) (stateStruct.vel_total * 100.0);
+    telemPacket.vel_vert = (int16_t)(stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t)(stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t)(stateStruct.vel_total * 100.0);
 
     // TODO: Add GPS to telemPacket
 }
@@ -415,7 +416,7 @@ void readSensors()
 void logData()
 {
     structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
-    
+
     flash.writeStruct(structString);
 }
 
@@ -494,23 +495,30 @@ void debugPrint()
     Serial.println("");
 }
 
-void LEDon() {
+void LEDon()
+{
     digitalWrite(LED_PIN, HIGH);
 }
 
-void LEDoff() {
+void LEDoff()
+{
     digitalWrite(LED_PIN, LOW);
 }
 
-void initLED() {
+void initLED()
+{
     pinMode(LED_PIN, OUTPUT);
     LEDon();
 }
 
-void blinkLED() {
-    if (counter % 100 == 0) {
+void blinkLED()
+{
+    if (counter % 100 == 0)
+    {
         LEDon();
-    } else if (counter % 100 == 10) {
+    }
+    else if (counter % 100 == 10)
+    {
         LEDoff();
     }
 }
@@ -549,19 +557,20 @@ void setup()
         Serial.println("Sensor setup failed.");
     }
 
-    // IMU calibration
+    IMU calibration
     calibrateIMU();
 
     // Altitude AGL compensation
     calibrateAltitudeAGL();
 
-    // Set initial conditions for controller class
+    Set initial conditions for controller class
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     LEDoff();
 }
 
-void printLoopTime() {
+void printLoopTime()
+{
     long currentTime = millis();
     loopTime = currentTime - previousTime;
     previousTime = currentTime;
@@ -599,14 +608,13 @@ void loop()
             break;
         case BOOST:
             // Stay in this state for at least 3 seconds to prevent airbrake activation
-            if (boostTimer.check() == 1) {
-                boostTimerElapsed = true;
-            }
-
-            if (boostTimerElapsed) {
-                if (motorBurnoutDetect()) {
+            if (boostTimer.check() == 1)
+            {
+                if (motorBurnoutDetect())
+                {
                     state_start = millis();
                     avionicsState = COAST;
+                    coastTimer.reset();
                     break;
                 }
             }
@@ -648,16 +656,21 @@ void loop()
         //     }
         //     break;
         case COAST:
-            
+
             doAirbrakeControls();
 
-            if (apogeeDetect())
+            // Lock out apogee detection for 10 seconds to prevent false apogee detection
+            if (coastTimer.check() == 1)
             {
-                abPct = 0;
-                airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
-                // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
+                Serial.println("Apogee detection enabled!");
+                if (apogeeDetect())
+                {
+                    abPct = 0;
+                    airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
+                    // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
+                    state_start = millis();
+                    avionicsState = DROGUE_DEPLOY;
+                }
             }
 
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
