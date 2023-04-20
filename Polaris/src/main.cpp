@@ -557,13 +557,13 @@ void setup()
         Serial.println("Sensor setup failed.");
     }
 
-    IMU calibration
+    // IMU calibration
     calibrateIMU();
 
     // Altitude AGL compensation
     calibrateAltitudeAGL();
 
-    Set initial conditions for controller class
+    // Set initial conditions for controller class
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     LEDoff();
