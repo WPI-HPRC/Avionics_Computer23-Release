@@ -5,7 +5,7 @@
 #include <MS5x.h>
 #include <GroundStation/Telemetry.h>
 
-#include ".\lib\Metro\Metro.h"
+#include <./lib/Metro/Metro.h>
 #include "Config.h"
 
 Metro timer = Metro(1000 / 10);
