@@ -8,6 +8,9 @@
 #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
 
+long loopTime;
+long previousTime;
+
 // Airbrake controller class
 Controller controller;
 
@@ -105,7 +108,7 @@ enum AvionicsState
     ABORT
 };
 
-AvionicsState avionicsState = STARTUP;
+AvionicsState avionicsState = COAST;
 
 // checks whether the state has timed out yet
 bool timeout(uint32_t length)
@@ -135,7 +138,8 @@ void calibrateIMU() {
     int c = 0;
     while (c < 1000) {
         
-        readSensors();
+        sensorboard.readInertialSensors();
+        memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
         
         //Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
@@ -348,7 +352,7 @@ void constructTelemPacket()
 
     // Timestamp
     timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
-    telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
+    telemPacket.timestamp = millis(); // TODO: Maybe change this to be time after launch detect?
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
@@ -386,6 +390,7 @@ void readSensors()
     // Construct sensorPacket struct with raw data from inertial sensors + barometer
     sensorboard.readInertialSensors();
     memcpy(&sensorPacket, &sensorboard.Inertial_Baro_frame, sizeof(sensorboard.Inertial_Baro_frame));
+
     sensorPacket.ac_x -= ac_x_error;
     sensorPacket.ac_y -= ac_y_error;
     sensorPacket.ac_z -= (1.0 + ac_z_error);
@@ -554,6 +559,15 @@ void setup()
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     LEDoff();
+}
+
+void printLoopTime() {
+    long currentTime = millis();
+    loopTime = currentTime - previousTime;
+    previousTime = currentTime;
+    Serial.print("Loop time: ");
+    Serial.print(loopTime);
+    Serial.println(" ms");
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -824,11 +838,13 @@ void loop()
         if (counter % 10 == 0)
         {
             // Transmit data packet to ground station
-            // sendTelemetry();
+            sendTelemetry();
 
             // Print telemPacket to Serial monitor for debugging
-            debugPrint();
+            // debugPrint();
         }
+
+        printLoopTime();
 
         counter++;
         timer.reset();
