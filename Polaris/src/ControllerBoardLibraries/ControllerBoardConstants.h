@@ -6,12 +6,13 @@ const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in meters
 
 const int HZ_10 = 10;
+const int HZ_20 = 20;
 const int HZ_100 = 100;
 
 const int CONVERSION = 1000;
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 // Set this to the desired Hz for the loop
-const int LOOP_FREQUENCY = HZ_100;
+const int LOOP_FREQUENCY = HZ_20;
 const double METER_CONVERSION = 0.3048; // conversion from feet to meters
 
 // Timer constants
