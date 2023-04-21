@@ -13,8 +13,8 @@ public:
 
 private:
     uint8_t servoPin;
-    const uint8_t AIRBRAKES_LOWER_BOUND = 141;
-    const uint8_t AIRBRAKES_UPPER_BOUND = 170;
+    const uint8_t AIRBRAKES_LOWER_BOUND = 98;
+    const uint8_t AIRBRAKES_UPPER_BOUND = 129;
 
 };
 
