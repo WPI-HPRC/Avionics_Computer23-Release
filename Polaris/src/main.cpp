@@ -35,6 +35,7 @@ uint32_t timestamp;                               // timestamp for telemetry pac
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
+Metro coastTimer = Metro(COST_MIN_LENGTH);
 
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
@@ -90,18 +91,17 @@ int16_t mainPollCount = 0;
 int16_t sumDrogueDescentVel = 0;
 int16_t droguePollCount = 0;
 
+bool coastFlag = false;
+
 // Enumeration for rocket mission states
 enum AvionicsState
 {
     STARTUP,
     PRELAUNCH,
     BOOST,
-    COAST_CONTINGENCY,
     COAST,
     DROGUE_DEPLOY,
-    DROGUE_CONTINGENCY,
     DROGUE_DESCENT,
-    MAIN_CONTINGENCY,
     MAIN_DEPLOY,
     MAIN_DESCENT,
     POSTFLIGHT,
@@ -576,54 +576,28 @@ void loop()
                 }
             }
 
-            // Coast Contingency 8 second timeout
-            // Burnout wasn't detected after 8 seconds, move into coast contingency
-            // if (timeout(BOOST_TIMEOUT))
-            // {
-            //     Serial.println("Boost phase timeout triggered!");
-            //     state_start = millis();
-            //     avionicsState = COAST_CONTINGENCY;
-            //     break;
-            // }
-
-            // ABORT Case
-            // Pitch or roll exceeds 30 degrees from vertical
-            // Acceleration is greater than 10g's
-            // if ((ac_total > 10) || (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION))
-            // {
-            //     state_start = millis();
-            //     avionicsState = ABORT;
-            //     break;
-            // }
-
             break;
-        // case COAST_CONTINGENCY:
-        //     // TODO Check if Coast appears normal, then move into COAST phase
-        //     // state_start = millis();
-        //     // avionicsState = COAST;
-        //     // break;
-
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Coast Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = DROGUE_CONTINGENCY;
-        //         break;
-        //     }
-        //     break;
+    
         case COAST:
             
             doAirbrakeControls();
-
-            if (apogeeDetect())
-            {
-                abPct = 0;
-                airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
-                // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
+            
+            if (coastTimer.check() == 1) {
+                coastFlag = true;
             }
+
+            if(coastFlag) {
+                if (apogeeDetect())
+                {
+                    abPct = 0;
+                    airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
+                    // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
+                    state_start = millis();
+                    avionicsState = DROGUE_DEPLOY;
+                }
+            }
+
+            
 
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
             if (timeout(COAST_TIMEOUT))
