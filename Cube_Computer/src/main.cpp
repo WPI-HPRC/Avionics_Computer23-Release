@@ -72,14 +72,6 @@ void setup()
   Serial.println(flash.getMaxPage());
   Serial.println("[Flash Chip]: Initialization Complete");
 
-  if (flash.eraseChip())
-  {
-    Serial.println("Chip Erased");
-  }
-  else
-  {
-    Serial.println("Chip Erase Failed");
-  }
 }
 
 void loop()
