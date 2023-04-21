@@ -1,41 +1,37 @@
 #include "Flash.h"
 
 FlashChip::FlashChip() {
-    flash = new SPIFlash(10);
 }
 
 void FlashChip::init() {
     Serial.println("[Flash Chip]: Beginning initialization");
 
-    flash->begin();
-    
+    flash.begin();
     
     Serial.println("====Flash Chip Configuration====");
-    Serial.print("Flash Capacity: "); Serial.println(flash->getCapacity());
-    Serial.print("Max Page: "); Serial.println(flash->getMaxPage());
+    Serial.print("Flash Capacity: "); Serial.println(flash.getCapacity());
+    Serial.print("Max Page: "); Serial.println(flash.getMaxPage());
     Serial.println("[Flash Chip]: Initialization Complete");
 
-    if(flash->eraseChip()) {
-        Serial.println("Chip Erased");
-    }else{
-        Serial.println("Chip Erase Failed");
-    }
 }
 
+void FlashChip::rememberAddress() {
+    flash.readStr(0, read);
+    nextAddress = (uint32_t)(read.toInt());
+}
 
 bool FlashChip::writeStruct(String structString) {
     
+    // Writes the struct to the flash chip
+    // and increments the nextAddress variable
+    flash.writeStr(nextAddress, structString);
     nextAddress += 256;
-    flash->writeStr(nextAddress, structString);
+
+    // updates the nextAddressString variable
+    // and writes it to the flash chip's first page
+    nextAddressString = String(nextAddress);
+    flash.eraseSection(0, 256);
+    flash.writeStr(0, nextAddressString);
 
     return true;
-}
-
-
-bool FlashChip::eraseMemory() {
-    if(!flash->eraseChip()) {
-        return false;
-    }
-    return true;
-
 }

@@ -5,16 +5,15 @@
 
 
 class FlashChip {
+
 public:
     FlashChip();
-    void init();
     uint32_t nextAddress;
+    String nextAddressString;
+    String read;
+    SPIFlash flash = SPIFlash(10);
+
+    void init();
     bool writeStruct(String structStringe);
-    // bool readData();
-    
-
-    bool eraseMemory();
-private:
-    SPIFlash * flash;
-
+    void rememberAddress();
 };

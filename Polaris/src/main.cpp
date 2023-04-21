@@ -643,7 +643,8 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    // flash.init();
+    flash.init();
+    flash.rememberAddress();
 
     // Sensor initialization
     Wire.begin();
