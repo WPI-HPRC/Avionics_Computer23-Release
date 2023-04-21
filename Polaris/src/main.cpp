@@ -46,11 +46,11 @@ bool coastFlag = false;
 
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
-float transitionBufAcc[5];
+float transitionBufAcc[10];
 uint8_t transitionBufIndAcc = 0;
 
 // Vertical velocity buffer
-int16_t transitionBufVelVert[5];
+int16_t transitionBufVelVert[10];
 uint8_t transitionBufIndVelVert = 0;
 
 // Altitude buffer
@@ -232,16 +232,16 @@ boolean launchDetect()
     transitionBufAcc[transitionBufIndAcc] = sensorPacket.ac_z;
     // take running average value
     float sum = 0.0;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 10; i++)
     {
         sum += transitionBufAcc[i];
     }
-    sum = sum / 5.0;
-    transitionBufIndAcc = (transitionBufIndAcc + 1) % 5;
+    sum = sum / 10.0;
+    transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
     if (sum > ACCEL_THRESHOLD)
     {
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < 10; j++)
         {
             transitionBufAcc[j] = 0;
         }
@@ -261,17 +261,17 @@ boolean motorBurnoutDetect()
     transitionBufAcc[transitionBufIndAcc] = sensorPacket.ac_z;
     // take running average value
     float sum = 0.0;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 10; i++)
     {
         sum += transitionBufAcc[i];
     }
-    sum = sum / 5.0;
+    sum = sum / 10.0;
 
-    transitionBufIndAcc = (transitionBufIndAcc + 1) % 5;
+    transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // If avg acceleration is < 0
     if (sum < 0)
     {
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < 10; j++)
         {
             transitionBufAcc[j] = 0;
         }
@@ -289,17 +289,17 @@ boolean apogeeDetect()
     transitionBufVelVert[transitionBufIndVelVert] = stateStruct.vel_vert;
     // take running average value
     float sum = 0.0;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 10; i++)
     {
         sum += transitionBufVelVert[i];
     }
-    sum = sum / 5.0;
+    sum = sum / 10.0;
 
-    transitionBufIndVelVert = (transitionBufIndVelVert + 1) % 5;
+    transitionBufIndVelVert = (transitionBufIndVelVert + 1) % 10;
     // if average vertical velocity is negative, passed apogee
     if (sum < 0)
     {
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < 10; j++)
         {
             transitionBufVelVert[j] = 0;
         }
@@ -674,6 +674,8 @@ void setup()
     // Turn off LEDs
     LEDsOff();
 
+    // Reset timer before entering loop
+    timer.reset();
     previousTime = millis();
 }
 
@@ -742,7 +744,7 @@ void loop()
 
             case COAST:
 
-                if (counter % 4 == 0)
+                if (counter % 8 == 0)
                 {
                     doAirbrakeControls();
                 }
@@ -907,10 +909,12 @@ void loop()
         // Log data packer on Flash chip
         logData();
 
-        if (counter % 2 == 0) {
+        if (counter % 4 == 0) {
             // Transmit data packet to ground station
-            // sendTelemetry();
-        } else if (counter % 5 == 0) {
+            sendTelemetry();
+        }
+        
+        if (counter % 10 == 0) {
             // Print telemPacket to Serial monitor for debugging
             // debugPrint();
         }
