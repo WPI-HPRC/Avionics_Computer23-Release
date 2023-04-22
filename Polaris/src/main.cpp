@@ -79,9 +79,6 @@ bool boostTimerElapsed = false;
 
 // Variable declarations for filtered state data
 float altitude;
-int16_t vel_vert;
-int16_t vel_lat;
-int16_t vel_total;
 int16_t ac_total;
 uint8_t abPct;
 
@@ -376,9 +373,9 @@ void constructTelemPacket()
     telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t)vel_vert;
-    telemPacket.vel_lat = (int16_t)vel_lat;
-    telemPacket.vel_total = (int16_t)vel_total;
+    telemPacket.vel_vert = (int16_t) (stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t) (stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t) (stateStruct.vel_total * 100.0);
 
     // TODO: Add GPS to telemPacket
 }
@@ -503,11 +500,13 @@ void setup()
     airbrakeServo.setPosition(0);
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
     flash.init();
+    int startingAddress = flash.rememberAddress();
+    Serial.print("Flash Starting: "); Serial.println(startingAddress);
 
     // Sensor initialization
     Wire.begin();
@@ -770,9 +769,11 @@ void loop()
         doStateEstimation();
 
         // Log data packer on Flash chip
-        logData();
+        if(telemBoard.getState() == TX) {
+            logData();
+        }
 
-        if (counter % 10 == 0)
+        if (counter % 4 == 0)
         {
             // Transmit data packet to ground station
             sendTelemetry();
