@@ -3,7 +3,7 @@ const float ACCEL_THRESHOLD = 3;           // g
 const int MAIN_DESCENT_THRESHOLD = 7;     // m/s TODO FIX THIS
 const int DROGUE_DESCENT_THRESHOLD = 30;   // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
-const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in meters
+const int LAND_THRESHOLD = 10;             // [m] ceiling for landing height in meters, changed from 20 from L1 launch
 
 const float HZ_10 = 10.0;
 const float HZ_20 = 20.0;

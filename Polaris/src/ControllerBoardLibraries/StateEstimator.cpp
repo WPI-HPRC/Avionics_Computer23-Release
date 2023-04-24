@@ -2,6 +2,7 @@
 
 StateStruct StateEstimator::getState(float alt, float ac_x, float ac_y, float ac_z)
 {
+  // TODO: fix timestep depending on actual time from other fcn
   // add new altitude value to buffer
   altitudeBuffer[altBuffInd] = alt;
   // take running average value

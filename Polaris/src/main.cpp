@@ -810,6 +810,7 @@ void loop()
                 else
                 {
                     int16_t avgDescentRate = sumDrogueDescentVel / droguePollCount;
+                    // TODO: should be absolute value
                     if (avgDescentRate <= DROGUE_DESCENT_THRESHOLD)
                     {
                         state_start = millis();

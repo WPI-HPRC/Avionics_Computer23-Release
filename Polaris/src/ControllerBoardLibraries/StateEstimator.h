@@ -8,7 +8,7 @@ struct StateStruct{
 
 class StateEstimator {
     private:
-        const float timeStep = 0.01;
+        const float timeStep = 0.01; // fix to be based on rate
         float prev_avg_alt = 0;
         float vel_x;
         float vel_y;
