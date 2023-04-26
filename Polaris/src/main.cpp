@@ -571,8 +571,10 @@ void loop()
             break;
         case PRELAUNCH:
             // detect acceleration of 3G's
+            buildCircBuf();
             if (launchDetect())
             {
+                writeCircBuf();
                 avionicsState = BOOST;
                 boostTimer.reset();
                 state_start = millis();
@@ -580,6 +582,7 @@ void loop()
             break;
         case BOOST:
             // Stay in this state for at least 3 seconds to prevent airbrake activation
+            logData();
             if (boostTimer.check() == 1) {
                 boostTimerElapsed = true;
             }
@@ -595,7 +598,7 @@ void loop()
             break;
     
         case COAST:
-            
+            logData();
             doAirbrakeControls();
             
             if (coastTimer.check() == 1) {
@@ -647,6 +650,7 @@ void loop()
             }
             break;
         case DROGUE_DEPLOY:
+            logData();
             if (!timeout(1000))
             {
                 sumDrogueDescentVel += stateStruct.vel_vert;
@@ -686,6 +690,7 @@ void loop()
         //     }
         //     break;
         case DROGUE_DESCENT:
+            logData();
             // detect altitude drop below 1500ft
             if (altitude < (1500 * METER_CONVERSION))
             {
@@ -703,6 +708,7 @@ void loop()
             // }
             break;
         case MAIN_DEPLOY:
+            logData();
             // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
             // Poll for a second?
             if (!timeout(1000))
@@ -744,6 +750,7 @@ void loop()
         //     }
         //     break;
         case MAIN_DESCENT:
+            logData();
             // transmit data during this phase
 
             // altitude below 50ft
@@ -763,10 +770,12 @@ void loop()
             }
             break;
         case POSTFLIGHT:
+            logData();
             // datalog slow
             lowPowerMode();
             break;
         case ABORT:
+            logData();
             // jump to here if anything goes terribly wrong (but obv it won't)
             // retract airbrakes
             abPct = 0;
@@ -784,11 +793,6 @@ void loop()
 
         // Perform state estimation
         doStateEstimation();
-
-        // Log data packer on Flash chip
-        if(telemBoard.getState() == TX) {
-            logData();
-        }
 
         if (counter % 4 == 0)
         {
