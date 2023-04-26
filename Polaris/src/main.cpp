@@ -17,6 +17,9 @@ StateEstimator stateEstimator;
 // Flash chip instantiation
 FlashChip flash = FlashChip();
 String structString = "";
+String circBuf[200]; 
+int circBufInd = 0;
+
 
 // Telemetry Board class
 TelemetryBoard telemBoard = TelemetryBoard();
@@ -404,6 +407,20 @@ void readSensors()
 
     // Construct telemetry data packet
     constructTelemPacket();
+}
+
+void buildCircBuf(){
+    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    circBuf[circBufInd] = structString; // pass in the string to the circular buffer
+    circBufInd = (circBufInd + 1) % 200; // increment the index and wrap around if necessary
+}
+
+void writeCircBuf()
+{
+    for (int i = 0; i < 200; i++)
+    {
+        flash.writeStruct(circBuf[i]);
+    }
 }
 
 // Write data (telemPacket) to flash chip
