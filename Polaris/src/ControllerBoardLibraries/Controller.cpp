@@ -10,10 +10,19 @@ Controller::Controller() {
 // takes in altitude, vertical and lateral velocity
 // returns airbrake extension in a range from 0-100
 uint8_t Controller::calcAbPct(float alt, float velLat, float velVert) {
+    didBidStupid = false;
+
+    Serial.println("");
+    Serial.println("");
     
     // calculate dynamic pressure and drag force
     float dynamicPressure = pressure_at_altitude(pZero,alt,tZero);
     float dragForce = targetDragCoefficient(alt,velLat,velVert,dt,pZero,0,tZero);
+
+    Serial.print("Dynamic pressure: ");
+    Serial.println(dynamicPressure);
+    Serial.print("Drag Force: ");
+    Serial.println(dragForce);
 
     float a = 0.699638467114056;
     float b = -0.000844592841487885;
@@ -70,7 +79,7 @@ float Controller::rk4(float alt, float velLat, float velVert, int8_t dt, float c
     float rho = density(alt,tZero,P);
     float v = sqrt((velLat*velLat)+(velVert+velVert));
 
-    while(xCurr[1] < 0 && abTimer.check() != 1) {
+    while(xCurr[1] < 0 && !didBidStupid) {
         k1[0] = (float) velLat * dt;
         k1[1] = dt*calcLatAcc(velLat, v, currCD, rho, A);
         k1[2] = dt*calcVertAcc(velVert, v, currCD, rho, A);
@@ -96,6 +105,11 @@ float Controller::rk4(float alt, float velLat, float velVert, int8_t dt, float c
         xCurr[0] = xCurr[0] + ((1/6)*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]));
         xCurr[1] = xCurr[1] + ((1/6)*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]));
         xCurr[2] = xCurr[2] + ((1/6)*(k1[2] + 2*k2[2] + 2*k3[2] + k4[2]));
+
+        if (abTimer.check() == 1) {
+            Serial.println("Controller failed!");
+            didBidStupid = true;
+        }
     }
     float apogee = xCurr[0];
     return apogee;

@@ -35,6 +35,8 @@ class Controller
 
         float pZero;
         float tZero;
+
+        bool didBidStupid;
 };
 
 #endif
