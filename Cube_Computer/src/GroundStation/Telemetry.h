@@ -1,36 +1,69 @@
+/**
+ * @file TelemetryBoard.h
+ * @author Daniel Pearson
+ * @brief Telemetry board transceiver code
+ * @version 0.1
+ * @date 2023-03-20
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #pragma once
 
 #include "Arduino.h"
-#include <lib/SX12XX/SX127XLT.h>
+#include <SoftwareSerial.h>
+
+#include <LoRa.h>
 
 enum TransceiverState {
     RX, TX
 };
 
-class Telemetry {
-    public:
-        Telemetry();
+struct TelemetryPacket {
+    String name; // Name of the packet, used for identification
+    uint32_t timestamp; // System time from power board, running from startup onward. Given in milliseconds.
+    float pressure;
+    float humidity;
+    float temperature;
+};
 
-        void init();
-        void onLoop(uint32_t timestamp);
-        void setState(TransceiverState state);
-    private:
-        const uint8_t LORA_CS = 6;
-        const uint8_t LORA_RST = 5;
+#define PACKET_BEG "BEGB"
+#define TIMESTAMP_IDENT "TSP"
+#define STATE_IDENT "STT"
+#define ALTITUDE_IDENT "ALT"
+#define TEMPERATURE_IDENT "TMP"
+#define VOLTAGE_IDENT "VLT"
+#define AIRBRAKES_IDENT "ARB"
+#define PACKET_END "ENDB"
 
-        const uint32_t frequency = 920000000; // 920MHz
-        const uint32_t offset = 0; // No offset
-        const uint8_t bandwith = LORA_BW_125; // 125Khz
-        const uint8_t SpreadingFactor = LORA_SF7; //
-        const uint8_t CodeRate = LORA_CR_4_5;
-        const uint8_t Optimisation = LDRO_AUTO;
 
-        const int8_t TXPower = 10; // TX power in dBm
-        const uint16_t packetDelay = 100;
+class TelemetryBoard {
+public:
 
-        TransceiverState state = RX; // Default to RX
+    TelemetryBoard();
 
-        SX127XLT radio;
+    void init();
 
-        uint8_t packetLen;
+    void onLoop(TelemetryPacket telemPacket);
+
+    void setState(TransceiverState newState);
+
+    TransceiverState getState() {
+        return transmitterState;
+    }
+
+private:
+    constexpr static int LORA_CS = 6;
+    
+    TransceiverState transmitterState = RX;
+
+    uint8_t packetSize = sizeof(TelemetryPacket);
+
+    void printPacketToGS(TelemetryPacket rxPacket);
+
+    TelemetryPacket transmitPacket;
+
+    LoRaClass * radio;
+
 };

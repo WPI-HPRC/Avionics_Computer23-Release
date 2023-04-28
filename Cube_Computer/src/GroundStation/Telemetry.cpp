@@ -1,53 +1,51 @@
 #include "Telemetry.h"
 
-Telemetry::Telemetry() {
-    // Do nothing
-    
+TelemetryBoard::TelemetryBoard() {
+    radio = new LoRaClass();
 }
 
-void Telemetry::init() {
-    if(!radio.begin(LORA_CS, LORA_RST, DEVICE_SX1276)) {
-        Serial.println("SX1276 not found");
+void TelemetryBoard::init() {
+
+    radio->setPins(LORA_CS);
+
+    if(radio->begin(915E6)) {
+        Serial.println("[Radio] Successfully Initialized");
     } else {
-        Serial.println("SX1276 detected");
+        Serial.println("[Radio] Failed to Initialize");
     }
-    radio.setMode(MODE_STDBY_RC); // Set transceiver mode to standby for configuration
-    radio.setPacketType(PACKET_TYPE_LORA);
-    radio.setRfFrequency(frequency, offset); // Set Frequency to 920MHz
-    radio.calibrateImage(0); // Calibrate Transceiver
-    radio.setModulationParams(SpreadingFactor, bandwith, CodeRate, LDRO_AUTO);
-    radio.setBufferBaseAddress(0x00, 0x00);
-    radio.setPacketParams(8, LORA_PACKET_VARIABLE_LENGTH, 255, LORA_CRC_ON, LORA_IQ_NORMAL);
-    radio.setSyncWord(LORA_MAC_PRIVATE_SYNCWORD);
-    radio.setHighSensitivity();
-    radio.setDioIrqParams(IRQ_RADIO_ALL, IRQ_TX_DONE, 0, 0);
-
-    Serial.println();
-    radio.printModemSettings();
-    Serial.println();
-    radio.printOperatingSettings();
-    Serial.println();
-    Serial.println();
-    radio.printRegisters(0x00, 0x4F);  
-    Serial.println();
-    Serial.println();
-
-    Serial.print(F("Transmitter ready"));
-
 }
 
-void Telemetry::onLoop(uint32_t timestamp) {
-    uint8_t tempPacket[] = "Hello World";
-    packetLen = sizeof(tempPacket);
-    tempPacket[packetLen -1] = '*';
-
-    radio.printASCIIPacket(tempPacket, packetLen);
-    
-    uint8_t packetStatus = radio.transmit(tempPacket, packetLen, 10000, TXPower, WAIT_TX);
-    Serial.println("Packet Status: " + String(packetStatus));
-    Serial.print("TSP: "); Serial.println(timestamp);
+void TelemetryBoard::setState(TransceiverState newState) {
+    this->transmitterState = newState;
 }
 
-void Telemetry::setState(TransceiverState state) {
-    // Do nothing
+void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
+    switch(transmitterState) {
+        case(TX): {
+            transmitPacket = telemPacket;
+            uint8_t txBuffer[sizeof(transmitPacket)];
+            memcpy(txBuffer, &transmitPacket, sizeof(transmitPacket));
+
+            String structString = telemPacket.name + "," + String(millis()) + "," + String(telemPacket.temperature) + "," + String(telemPacket.pressure) + "," + String(telemPacket.humidity);
+
+            radio->beginPacket();
+            // radio->write(txBuffer, sizeof(telemPacket));
+            radio->print(structString);
+            radio->endPacket();
+            Serial.print("Packet ("); Serial.print(millis()); Serial.println(")");
+
+            break;
+        }
+        case (RX): {
+            TelemetryPacket rxPacket;
+            radio->readBytes((uint8_t *) &rxPacket, sizeof(rxPacket));
+
+            break;
+        }
+    }
+}
+
+void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
+    uint32_t timestamp = rxPacket.timestamp;
+    uint8_t * tspB = (uint8_t *) &timestamp;
 }
