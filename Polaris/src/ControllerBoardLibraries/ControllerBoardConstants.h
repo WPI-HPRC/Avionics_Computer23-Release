@@ -7,16 +7,18 @@ const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in 
 
 const int HZ_10 = 10;
 const int HZ_100 = 100;
+const int HZ_40 = 40;
 
 const int CONVERSION = 1000;
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 // Set this to the desired Hz for the loop
-const int LOOP_FREQUENCY = HZ_100;
+const int LOOP_FREQUENCY = HZ_40;
 const double METER_CONVERSION = 0.3048; // conversion from feet to meters
 
 // Timer constants
 const uint16_t PRELAUNCH_INTERVAL = 1 * SECONDS;
 const uint16_t BOOST_MIN_LENGTH = 3 * SECONDS;
+const uint16_t COST_MIN_LENGTH = 1 * SECONDS;
 
 // Timeout values
 const uint16_t BOOST_TIMEOUT = 8 * SECONDS;

@@ -10,7 +10,6 @@ Controller::Controller() {
 // takes in altitude, vertical and lateral velocity
 // returns airbrake extension in a range from 0-100
 uint8_t Controller::calcAbPct(float alt, float velLat, float velVert) {
-
     didBidStupid = false;
 
     Serial.println("");

@@ -21,6 +21,9 @@ StateEstimator stateEstimator;
 // Flash chip instantiation
 FlashChip flash = FlashChip();
 String structString = "";
+String circBuf[200]; 
+int circBufInd = 0;
+
 
 // Telemetry Board class
 TelemetryBoard telemBoard = TelemetryBoard();
@@ -39,6 +42,7 @@ uint32_t timestamp;                               // timestamp for telemetry pac
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
+Metro coastTimer = Metro(COST_MIN_LENGTH);
 
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
@@ -82,9 +86,6 @@ bool boostTimerElapsed = false;
 
 // Variable declarations for filtered state data
 float altitude;
-int16_t vel_vert;
-int16_t vel_lat;
-int16_t vel_total;
 int16_t ac_total;
 uint8_t abPct;
 
@@ -94,18 +95,17 @@ int16_t mainPollCount = 0;
 int16_t sumDrogueDescentVel = 0;
 int16_t droguePollCount = 0;
 
+bool coastFlag = false;
+
 // Enumeration for rocket mission states
 enum AvionicsState
 {
     STARTUP,
     PRELAUNCH,
     BOOST,
-    COAST_CONTINGENCY,
     COAST,
     DROGUE_DEPLOY,
-    DROGUE_CONTINGENCY,
     DROGUE_DESCENT,
-    MAIN_CONTINGENCY,
     MAIN_DEPLOY,
     MAIN_DESCENT,
     POSTFLIGHT,
@@ -380,9 +380,9 @@ void constructTelemPacket()
     telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t)vel_vert;
-    telemPacket.vel_lat = (int16_t)vel_lat;
-    telemPacket.vel_total = (int16_t)vel_total;
+    telemPacket.vel_vert = (int16_t) (stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t) (stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t) (stateStruct.vel_total * 100.0);
 
     // TODO: Add GPS to telemPacket
 }
@@ -411,6 +411,20 @@ void readSensors()
 
     // Construct telemetry data packet
     constructTelemPacket();
+}
+
+void buildCircBuf(){
+    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    circBuf[circBufInd] = structString; // pass in the string to the circular buffer
+    circBufInd = (circBufInd + 1) % 200; // increment the index and wrap around if necessary
+}
+
+void writeCircBuf()
+{
+    for (int i = 0; i < 200; i++)
+    {
+        flash.writeStruct(circBuf[i]);
+    }
 }
 
 // Write data (telemPacket) to flash chip
@@ -482,13 +496,14 @@ void setup()
     telemBoard.init();
 
     // Flash memory initialization
-    // flash.init();
+    flash.init();
+    int startingAddress = flash.rememberAddress();
+    Serial.print("Flash Starting: "); Serial.println(startingAddress);
 
     // Sensor initialization
     Wire.begin();
     Wire.setClock(400000);
     SPI.begin();
-
 
     if (sensorboard.setup())
     {
@@ -518,9 +533,11 @@ void loop() {
       
         // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
         if (timer.check() == 1) {
-
             doAirbrakeControls();
-
+            
+            if (coastTimer.check() == 1) {
+                coastFlag = true;
+            }
             // Pull data from accelerometer, rate gyroscope, magnetometer, and GPS
             readSensors();
 
