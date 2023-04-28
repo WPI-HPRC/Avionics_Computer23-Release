@@ -4,6 +4,7 @@
 #include "ControllerBoardLibraries/ControllerBoardConstants.h"
 #include "ControllerBoardLibraries/Controller.h"
 #include "ControllerBoardLibraries/StateEstimator.h"
+#include "ControllerBoardLibraries/pitches.h"
 #include "lib/Flash/Flash.h"
 #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
@@ -17,9 +18,8 @@ StateEstimator stateEstimator;
 // Flash chip instantiation
 FlashChip flash = FlashChip();
 String structString = "";
-String circBuf[200]; 
+String circBuf[200];
 int circBufInd = 0;
-
 
 // Telemetry Board class
 TelemetryBoard telemBoard = TelemetryBoard();
@@ -77,6 +77,20 @@ float gy_z_error;
 // Ground level altitude compensation
 float altitude_AGL;
 
+// Pitches and durations for buzzer sounds
+int startupPitches[] = {
+    NOTE_C4, NOTE_G4, NOTE_C5, 0, NOTE_C4, NOTE_G4, NOTE_C5};
+
+int startupDurations[] = {
+    8, 8, 4, 2, 8, 8, 4};
+
+int songPitches[] = {
+    NOTE_D4, NOTE_F4, NOTE_D4, NOTE_D4, NOTE_G4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_A4, NOTE_D4, NOTE_D4, NOTE_AS4, NOTE_A4, NOTE_F4,
+    NOTE_D4, NOTE_A4, NOTE_D5, NOTE_D4, NOTE_C4, NOTE_C4, NOTE_A3, NOTE_E4, NOTE_D4, 0, NOTE_D6, NOTE_D6};
+
+int songDurations[] = {
+    4, 6, 8, 16, 8, 8, 8, 4, 6, 8, 16, 8, 8, 8, 8, 8, 8, 16, 8, 16, 8, 8, 2, 16, 4, 4};
+
 // Flag for boost timer
 bool boostTimerElapsed = false;
 
@@ -126,7 +140,8 @@ bool timeout(uint32_t length)
 
 void readSensors();
 
-void calibrateIMU() {
+void calibrateIMU()
+{
 
     float ac_x_error_sum = 0;
     float ac_y_error_sum = 0;
@@ -134,13 +149,14 @@ void calibrateIMU() {
     float gy_x_error_sum = 0;
     float gy_y_error_sum = 0;
     float gy_z_error_sum = 0;
-  
+
     int c = 0;
-    while (c < 1000) {
-        
+    while (c < 1000)
+    {
+
         readSensors();
-        
-        //Sum all readings
+
+        // Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
         ac_y_error_sum = ac_y_error_sum + sensorPacket.ac_y;
         ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
@@ -151,7 +167,7 @@ void calibrateIMU() {
         c++;
     }
 
-    //Divide the sum by 12000 to get the error value
+    // Divide the sum by 12000 to get the error value
     ac_x_error = ac_x_error_sum / c;
     ac_y_error = ac_y_error_sum / c;
     ac_z_error = ac_z_error_sum / c - 1.0;
@@ -171,28 +187,29 @@ void calibrateIMU() {
     Serial.println(gy_y_error);
     Serial.print("gy_z_error: ");
     Serial.println(gy_z_error);
-
 }
 
 float pressureToAltitude(float pressure_mBar);
 
-void calibrateAltitudeAGL() {
+void calibrateAltitudeAGL()
+{
 
     float altitude_error_sum = 0;
-  
+
     int c = 0;
-    while (c < 2000) {
-        
+    while (c < 2000)
+    {
+
         readSensors();
         altitude = pressureToAltitude(sensorPacket.Pressure);
-        
-        //Sum all readings
+
+        // Sum all readings
         altitude_error_sum = altitude_error_sum + altitude;
 
         c++;
     }
 
-    //Divide the sum -to get the error value
+    // Divide the sum -to get the error value
     altitude_AGL = altitude_error_sum / c;
 
     Serial.print("altitude_AGL: ");
@@ -350,7 +367,7 @@ void constructTelemPacket()
 {
 
     // Timestamp
-    timestamp = counter * (CONVERSION/LOOP_FREQUENCY);
+    timestamp = counter * (CONVERSION / LOOP_FREQUENCY);
     telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
 
     // State
@@ -366,19 +383,19 @@ void constructTelemPacket()
     telemPacket.abPct = abPct;
 
     // Acceleration (XYZ) [m/s^2] - Scaled by 100x for transmission
-    telemPacket.ac_x = (int16_t) (sensorPacket.ac_x * 100.0);
-    telemPacket.ac_y = (int16_t) (sensorPacket.ac_y * 100.0);
-    telemPacket.ac_z = (int16_t) (sensorPacket.ac_z * 100.0);
+    telemPacket.ac_x = (int16_t)(sensorPacket.ac_x * 100.0);
+    telemPacket.ac_y = (int16_t)(sensorPacket.ac_y * 100.0);
+    telemPacket.ac_z = (int16_t)(sensorPacket.ac_z * 100.0);
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
-    telemPacket.gy_x = (int16_t) (sensorPacket.gy_x * 10.0);
-    telemPacket.gy_y = (int16_t) (sensorPacket.gy_y * 10.0);
-    telemPacket.gy_z = (int16_t) (sensorPacket.gy_z * 10.0);
+    telemPacket.gy_x = (int16_t)(sensorPacket.gy_x * 10.0);
+    telemPacket.gy_y = (int16_t)(sensorPacket.gy_y * 10.0);
+    telemPacket.gy_z = (int16_t)(sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t) (stateStruct.vel_vert * 100.0);
-    telemPacket.vel_lat = (int16_t) (stateStruct.vel_lat * 100.0);
-    telemPacket.vel_total = (int16_t) (stateStruct.vel_total * 100.0);
+    telemPacket.vel_vert = (int16_t)(stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t)(stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t)(stateStruct.vel_total * 100.0);
 
     // TODO: Add GPS to telemPacket
 }
@@ -409,9 +426,10 @@ void readSensors()
     constructTelemPacket();
 }
 
-void buildCircBuf(){
+void buildCircBuf()
+{
     structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
-    circBuf[circBufInd] = structString; // pass in the string to the circular buffer
+    circBuf[circBufInd] = structString;  // pass in the string to the circular buffer
     circBufInd = (circBufInd + 1) % 200; // increment the index and wrap around if necessary
 }
 
@@ -427,7 +445,7 @@ void writeCircBuf()
 void logData()
 {
     structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
-    
+
     flash.writeStruct(structString);
 }
 
@@ -477,13 +495,13 @@ void debugPrint()
     Serial.print(telemPacket.abPct);
     Serial.println("%");
     Serial.print("Accel-X: ");
-    Serial.print((float) telemPacket.ac_x / 100.0);
+    Serial.print((float)telemPacket.ac_x / 100.0);
     Serial.println(" g");
     Serial.print("Accel-Y: ");
-    Serial.print((float) telemPacket.ac_y / 100.0);
+    Serial.print((float)telemPacket.ac_y / 100.0);
     Serial.println(" g");
     Serial.print("Accel-Z: ");
-    Serial.print((float) telemPacket.ac_z / 100.0);
+    Serial.print((float)telemPacket.ac_z / 100.0);
     Serial.println(" g");
     Serial.print("Gyro-X: ");
     Serial.print(telemPacket.gy_x / 10.0);
@@ -506,11 +524,42 @@ void debugPrint()
     Serial.println("");
 }
 
+void startupBeeps()
+{
+
+    for (int thisNote = 0; thisNote < 7; thisNote++)
+    {
+
+        int noteDuration = 1000 / startupDurations[thisNote];
+        tone(BUZZER_PIN, startupPitches[thisNote], noteDuration);
+        int pauseBetweenNotes = noteDuration * 1.30;
+        delay(pauseBetweenNotes);
+        noTone(BUZZER_PIN);
+    }
+}
+
+void mainLoopBeeps()
+{
+
+    for (int thisNote = 0; thisNote < 26; thisNote++)
+    {
+
+        int noteDuration = 1400 / songDurations[thisNote];
+        tone(BUZZER_PIN, songPitches[thisNote], noteDuration);
+        int pauseBetweenNotes = noteDuration * 1.30;
+        delay(pauseBetweenNotes);
+        noTone(BUZZER_PIN);
+    }
+}
+
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
     // Communications setup
     Serial.begin(57600);
+
+    // Play tones on startup
+    startupBeeps();
 
     // Initialize airbrake servo and set to fully retracted position
     airbrakeServo.init();
@@ -523,7 +572,8 @@ void setup()
     // Flash memory initialization
     flash.init();
     int startingAddress = flash.rememberAddress();
-    Serial.print("Flash Starting: "); Serial.println(startingAddress);
+    Serial.print("Flash Starting: ");
+    Serial.println(startingAddress);
 
     // Sensor initialization
     Wire.begin();
@@ -547,6 +597,9 @@ void setup()
 
     // Set initial conditions for controller class
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
+
+    // Play a little song before entering main loop
+    mainLoopBeeps();
 
     // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
 }
@@ -583,12 +636,15 @@ void loop()
         case BOOST:
             // Stay in this state for at least 3 seconds to prevent airbrake activation
             logData();
-            if (boostTimer.check() == 1) {
+            if (boostTimer.check() == 1)
+            {
                 boostTimerElapsed = true;
             }
 
-            if (boostTimerElapsed) {
-                if (motorBurnoutDetect()) {
+            if (boostTimerElapsed)
+            {
+                if (motorBurnoutDetect())
+                {
                     state_start = millis();
                     avionicsState = COAST;
                     break;
@@ -596,16 +652,18 @@ void loop()
             }
 
             break;
-    
+
         case COAST:
             logData();
             doAirbrakeControls();
-            
-            if (coastTimer.check() == 1) {
+
+            if (coastTimer.check() == 1)
+            {
                 coastFlag = true;
             }
 
-            if(coastFlag) {
+            if (coastFlag)
+            {
                 if (apogeeDetect())
                 {
                     abPct = 0;
@@ -615,8 +673,6 @@ void loop()
                     avionicsState = DROGUE_DEPLOY;
                 }
             }
-
-            
 
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
             if (timeout(COAST_TIMEOUT))

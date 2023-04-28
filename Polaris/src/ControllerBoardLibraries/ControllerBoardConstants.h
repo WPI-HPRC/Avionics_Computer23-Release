@@ -1,6 +1,6 @@
 const double G = 9.80665;                  // m/s^2
 const float ACCEL_THRESHOLD = 3;           // g
-const int MAIN_DESCENT_THRESHOLD = 7;     // m/s TODO FIX THIS
+const int MAIN_DESCENT_THRESHOLD = 7;      // m/s TODO FIX THIS
 const int DROGUE_DESCENT_THRESHOLD = 30;   // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in meters
@@ -28,5 +28,6 @@ const uint32_t DROGUE_DESCENT_TIMEOUT = 120 * SECONDS;
 const uint16_t MAIN_DEPLOY_TIMEOUT = 10 * SECONDS;
 const uint32_t MAIN_DESCENT_TIMEOUT = 100 * SECONDS;
 
-// Airbrake servo pin
+// Pin declarations
 const int SERVO_PIN = 7;
+const int BUZZER_PIN = 8;
