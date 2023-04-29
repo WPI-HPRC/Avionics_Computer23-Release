@@ -40,6 +40,10 @@ Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in S
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
 Metro coastTimer = Metro(COST_MIN_LENGTH);
 
+// Variables for recording loop timing
+long loopTime;
+long previousTime;
+
 // Declarations for state transition detection buffer
 // Z Acceleration buffer
 float transitionBufAcc[10];
@@ -369,6 +373,7 @@ void constructTelemPacket()
     // Timestamp
     timestamp = counter * (CONVERSION / LOOP_FREQUENCY);
     telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
+    // telemPacket.timestamp = millis();
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
@@ -524,6 +529,61 @@ void debugPrint()
     Serial.println("");
 }
 
+void LEDon(String color)
+{
+    if (color == "RED") {
+        digitalWrite(RED_LED, HIGH);
+    } else if (color == "YELLOW") {
+        digitalWrite(YELLOW_LED, HIGH);
+    } else if (color == "BLUE") {
+        digitalWrite(BLUE_LED, HIGH);
+    }
+
+}
+
+void LEDoff(String color)
+{
+    if (color == "RED") {
+        digitalWrite(RED_LED, LOW);
+    } else if (color == "YELLOW") {
+        digitalWrite(YELLOW_LED, LOW);
+    } else if (color == "BLUE") {
+        digitalWrite(BLUE_LED, LOW);
+    }
+}
+
+void LEDsOn() {
+    LEDon("RED");
+    LEDon("YELLOW");
+    LEDon("BLUE");
+}
+
+void LEDsOff() {
+    LEDoff("RED");
+    LEDoff("YELLOW");
+    LEDoff("BLUE");
+}
+
+void initLEDs()
+{
+    pinMode(RED_LED, OUTPUT);
+    pinMode(YELLOW_LED, OUTPUT);
+    pinMode(BLUE_LED, OUTPUT);
+}
+
+void blinkLED()
+{
+    if (counter % 40 == 0)
+    {
+        LEDon("YELLOW");
+    }
+    else if (counter % 40 == 2)
+    {
+        LEDoff("YELLOW");
+    }
+}
+
+// Play a few beeps to indicate power on.
 void startupBeeps()
 {
 
@@ -538,6 +598,7 @@ void startupBeeps()
     }
 }
 
+// Play a song to indicate succesful setup and entering main loop.
 void mainLoopBeeps()
 {
 
@@ -552,11 +613,38 @@ void mainLoopBeeps()
     }
 }
 
+// Extend airbrake fins to maximum extension for 1 second, then retract.
+void testAirbrakes() {
+    Serial.println("Testing airbrakes!");
+    airbrakeServo.setPosition(100);
+    delay(1000);
+    airbrakeServo.setPosition(0);
+}
+
+// Print to the Serial monitor the measured duration of one loop of the flight computer.
+void printLoopTime()
+{
+    long currentTime = millis();
+    loopTime = currentTime - previousTime;
+    previousTime = currentTime;
+    Serial.print("Loop time: ");
+    Serial.print(loopTime);
+    Serial.println(" ms");
+}
+
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
     // Communications setup
     Serial.begin(57600);
+
+    // Setup push button and buzzer
+    pinMode(BUTTON_PIN, INPUT);
+    pinMode(VBATT_PIN, INPUT);
+
+    // LEDs for debugging
+    initLEDs();
+    LEDsOn();
 
     // Play tones on startup
     startupBeeps();
@@ -564,6 +652,11 @@ void setup()
     // Initialize airbrake servo and set to fully retracted position
     airbrakeServo.init();
     airbrakeServo.setPosition(0);
+
+    // Perform airbrake extension test if button pressed
+    if (digitalRead(BUTTON_PIN)) {
+        testAirbrakes();
+    }
 
     // Telemetry initialization
     telemBoard.setState(RX);
@@ -601,7 +694,12 @@ void setup()
     // Play a little song before entering main loop
     mainLoopBeeps();
 
-    // TODO: Write a function to get initial pressure/altitude on pad? Could use for AGL compensation on altitude
+    // Turn off LEDs
+    LEDsOff();
+
+    // Reset timer before entering loop
+    timer.reset();
+    previousTime = millis();
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -610,6 +708,8 @@ void loop()
     // controls how frequently this loop runs, defined by LOOP_FREQUENCY in the constants file
     if (timer.check() == 1)
     {
+
+        // printLoopTime();
 
         switch (avionicsState)
         {
@@ -622,6 +722,7 @@ void loop()
                 state_start = millis();
             }
             break;
+
         case PRELAUNCH:
             // detect acceleration of 3G's
             buildCircBuf();
@@ -633,6 +734,7 @@ void loop()
                 state_start = millis();
             }
             break;
+
         case BOOST:
             // Stay in this state for at least 3 seconds to prevent airbrake activation
             logData();
@@ -650,12 +752,14 @@ void loop()
                     break;
                 }
             }
-
             break;
 
         case COAST:
             logData();
-            doAirbrakeControls();
+            
+            if (counter % 8 == 0) {
+                doAirbrakeControls();
+            }
 
             if (coastTimer.check() == 1)
             {
@@ -705,6 +809,7 @@ void loop()
                 }
             }
             break;
+
         case DROGUE_DEPLOY:
             logData();
             if (!timeout(1000))
@@ -730,21 +835,7 @@ void loop()
                 avionicsState = ABORT;
             }
             break;
-        // case DROGUE_CONTINGENCY:
-        //     // TODO Check for expected drogue descent rate, then move into DROGUE_DESCENT state
-        //     // state_start = millis();
-        //     // avionicsState = DROGUE_DESCENT;
-        //     // break;
 
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Drogue Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = MAIN_CONTINGENCY;
-        //         break;
-        //     }
-        //     break;
         case DROGUE_DESCENT:
             logData();
             // detect altitude drop below 1500ft
@@ -763,6 +854,7 @@ void loop()
             //     break;
             // }
             break;
+
         case MAIN_DEPLOY:
             logData();
             // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
@@ -790,21 +882,7 @@ void loop()
                 avionicsState = ABORT;
             }
             break;
-        // case MAIN_CONTINGENCY:
-        //     // TODO Check for expected main descent rate, then move into MAIN_DESCENT state
-        //     // state_start = millis();
-        //     // avionicsState = MAIN_DESCENT;
-        //     // break;
 
-        //     // TODO Determine timeout length
-        //     if (timeout(10000))
-        //     {
-        //         Serial.println("Main Contingency phase timeout triggered!");
-        //         state_start = millis();
-        //         avionicsState = POSTFLIGHT;
-        //         break;
-        //     }
-        //     break;
         case MAIN_DESCENT:
             logData();
             // transmit data during this phase
@@ -825,11 +903,13 @@ void loop()
                 break;
             }
             break;
+
         case POSTFLIGHT:
             logData();
             // datalog slow
             lowPowerMode();
             break;
+
         case ABORT:
             logData();
             // jump to here if anything goes terribly wrong (but obv it won't)
@@ -844,18 +924,22 @@ void loop()
             break;
         }
 
+        // Blink the yellow LED as a heartbeat indicator that the loop is running
+        blinkLED();
+
         // Pull data from accelerometer, rate gyroscope, magnetometer, and GPS
         readSensors();
 
         // Perform state estimation
         doStateEstimation();
 
-        if (counter % 4 == 0)
-        {
-            // Transmit data packet to ground station
+        // Transmit data packet to ground station at 10 Hz
+        if (counter % 4 == 0) {
             sendTelemetry();
-
-            // Print telemPacket to Serial monitor for debugging
+        }
+        
+        // Print telemPacket to Serial monitor for debugging
+        if (counter % 10 == 0) {
             // debugPrint();
         }
 

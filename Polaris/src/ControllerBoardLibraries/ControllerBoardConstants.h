@@ -29,5 +29,10 @@ const uint16_t MAIN_DEPLOY_TIMEOUT = 10 * SECONDS;
 const uint32_t MAIN_DESCENT_TIMEOUT = 100 * SECONDS;
 
 // Pin declarations
+const int BLUE_LED = 6;
 const int SERVO_PIN = 7;
+const int RED_LED = 20;
+const int YELLOW_LED = 21;
 const int BUZZER_PIN = 8;
+const int BUTTON_PIN = 17;
+const int VBATT_PIN = 16;
