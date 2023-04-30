@@ -668,7 +668,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -954,7 +954,7 @@ void loop()
         doStateEstimation();
 
         // Transmit data packet to ground station at 10 Hz
-        if (counter % 4 == 0) {
+        if (counter % 5 == 0) {
             sendTelemetry();
         }
         
