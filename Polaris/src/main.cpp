@@ -381,7 +381,7 @@ void constructTelemPacket()
     telemPacket.state = (uint8_t)avionicsState;
 
     // Battery voltage
-    telemPacket.vBatt = (uint8_t) (vBatt * 10);
+    telemPacket.vBatt = (uint8_t) (vBatt * 20);
 
     // Altitude [m]
     telemPacket.altitude = altitude;
@@ -496,7 +496,7 @@ void debugPrint()
     Serial.print("State: ");
     Serial.println(telemPacket.state);
     Serial.print("Battery voltage: ");
-    Serial.print(telemPacket.vBatt / 10.0);
+    Serial.print(telemPacket.vBatt / 20.0);
     Serial.println(" V");
     Serial.print("Altitude: ");
     Serial.print(telemPacket.altitude);
@@ -667,7 +667,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
