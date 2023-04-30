@@ -91,6 +91,9 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     int16_t totalVel = rxPacket.vel_total / 100.0;
     uint8_t * tvB = (uint8_t *) &totalVel;
 
+    // float voltage = rxPacket.vBatt * 10.0;
+    // uint8_t * voltB = (uint8_t *) &voltage;
+
     Serial.print(PACKET_BEG);
     
     Serial.print(TIMESTAMP_IDENT);
@@ -153,6 +156,12 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.print("VEL");
     Serial.write(tvB[1]);
     Serial.write(tvB[0]);
+
+    // Serial.print(VOLTAGE_IDENT);
+    // Serial.write(voltB[3]);
+    // Serial.write(voltB[2]);
+    // Serial.write(voltB[1]);
+    // Serial.write(voltB[0]);
 
     Serial.print(PACKET_END);
 }
