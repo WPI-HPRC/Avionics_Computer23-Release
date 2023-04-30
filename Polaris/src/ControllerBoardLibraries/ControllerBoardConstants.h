@@ -1,9 +1,12 @@
-const double G = 9.80665;                  // m/s^2
-const float ACCEL_THRESHOLD = 3;           // g
-const int MAIN_DESCENT_THRESHOLD = 7;      // m/s TODO FIX THIS
-const int DROGUE_DESCENT_THRESHOLD = 30;   // m/s TODO FIX THIS
-const double PITCH_FRACTION = 0.577350269; // 1/sqrt(3) or tan(30 degrees)
-const int LAND_THRESHOLD = 20;             // [m] ceiling for landing height in meters
+const double G = 9.80665;                   // m/s^2
+const float ACCEL_THRESHOLD = 3;            // g
+const int MAIN_DESCENT_THRESHOLD = 7;       // m/s TODO FIX THIS
+const int DROGUE_DESCENT_THRESHOLD = 30;    // m/s TODO FIX THIS
+const double PITCH_FRACTION = 0.577350269;  // 1/sqrt(3) or tan(30 degrees)
+const int LAND_THRESHOLD = 20;              // [m] ceiling for landing height in meters
+const int ADC_RESOLUTION = 1024;            // resolution for 10-bit ADC
+const float ADC_FULL_SCALE_RANGE = 3.3;     // Maximum voltage read by ADC is 3.3V
+const int VOLTAGE_DIVIDER_RATIO = 3;        // Scale factor for reading voltage with voltage divider
 
 const int HZ_10 = 10;
 const int HZ_100 = 100;
