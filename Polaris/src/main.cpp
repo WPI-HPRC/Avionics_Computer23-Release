@@ -668,7 +668,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -719,7 +719,7 @@ void setup()
     previousTime = millis();
 
     // Set system time to zero
-    loopStartTime = millis();
+    loopStartTime = millis() + 26;
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
