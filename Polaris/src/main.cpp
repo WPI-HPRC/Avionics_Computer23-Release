@@ -381,7 +381,7 @@ void constructTelemPacket()
     telemPacket.state = (uint8_t)avionicsState;
 
     // Battery voltage
-    telemPacket.vBatt = (uint8_t) (vBatt * 10);
+//    telemPacket.vBatt = (uint8_t) (vBatt * 10);
 
     // Altitude [m]
     telemPacket.altitude = altitude;
@@ -438,7 +438,7 @@ void readSensors()
 
 void buildCircBuf()
 {
-    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    // structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total) + "," + String(telemPacket.vBatt);
     circBuf[circBufInd] = structString;  // pass in the string to the circular buffer
     circBufInd = (circBufInd + 1) % 200; // increment the index and wrap around if necessary
 }
@@ -454,7 +454,7 @@ void writeCircBuf()
 // Write data (telemPacket) to flash chip
 void logData()
 {
-    structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total);
+    // structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total) + "," + String(telemPacket.vBatt);
 
     flash.writeStruct(structString);
 }
@@ -497,7 +497,7 @@ void debugPrint()
     Serial.print("State: ");
     Serial.println(telemPacket.state);
     Serial.print("Battery voltage: ");
-    Serial.print(telemPacket.vBatt / 10.0);
+//    Serial.print(telemPacket.vBatt / 10.0);
     Serial.println(" V");
     Serial.print("Altitude: ");
     Serial.print(telemPacket.altitude);
@@ -668,7 +668,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -952,7 +952,7 @@ void loop()
         
         // Print telemPacket to Serial monitor for debugging
         if (counter % 10 == 0) {
-            debugPrint();
+            // debugPrint();
         }
 
         counter++;
