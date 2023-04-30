@@ -54,7 +54,7 @@ class Sensorboard{
         // Accelerometer
         Inertial_Baro_frame.ac_x = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[0],Buffer[1]), 2048.0);
         Inertial_Baro_frame.ac_y = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[2],Buffer[3]), 2048.0);
-        Inertial_Baro_frame.ac_z = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0);
+        Inertial_Baro_frame.ac_z = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[4],Buffer[5]), 2048.0) - 1.0;
 
 
         // Gyroscope

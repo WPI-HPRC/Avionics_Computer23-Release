@@ -41,6 +41,7 @@ Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BO
 Metro coastTimer = Metro(COST_MIN_LENGTH);
 
 // Variables for recording loop timing
+long loopStartTime;
 long loopTime;
 long previousTime;
 
@@ -97,6 +98,9 @@ int songDurations[] = {
 
 // Flag for boost timer
 bool boostTimerElapsed = false;
+
+// Variable for measured battery voltage
+float vBatt = 0.0;
 
 // Variable declarations for filtered state data
 float altitude;
@@ -174,7 +178,7 @@ void calibrateIMU()
     // Divide the sum by 12000 to get the error value
     ac_x_error = ac_x_error_sum / c;
     ac_y_error = ac_y_error_sum / c;
-    ac_z_error = ac_z_error_sum / c - 1.0;
+    ac_z_error = ac_z_error_sum / c;
     gy_x_error = gy_x_error_sum / c;
     gy_y_error = gy_y_error_sum / c;
     gy_z_error = gy_z_error_sum / c;
@@ -371,12 +375,13 @@ void constructTelemPacket()
 {
 
     // Timestamp
-    timestamp = counter * (CONVERSION / LOOP_FREQUENCY);
-    telemPacket.timestamp = timestamp; // TODO: Maybe change this to be time after launch detect?
-    // telemPacket.timestamp = millis();
+    telemPacket.timestamp = millis() - loopStartTime;
 
     // State
     telemPacket.state = (uint8_t)avionicsState;
+
+    // Battery voltage
+    telemPacket.vBatt = (uint8_t) (vBatt * 10);
 
     // Altitude [m]
     telemPacket.altitude = altitude;
@@ -424,8 +429,8 @@ void readSensors()
     // Compute altitude from pressure
     altitude = pressureToAltitude(sensorPacket.Pressure) - altitude_AGL;
 
-    // Construct gpsPacket struct with data from GPS
-    // TODO: Get GPS data from sensor board class
+    // Read battery voltage
+    vBatt = ((float)analogRead(VBATT_PIN)/310.0) * 3.0;
 
     // Construct telemetry data packet
     constructTelemPacket();
@@ -485,11 +490,15 @@ void lowPowerMode()
 // Print telemPacket to Serial monitor for debugging purposes
 void debugPrint()
 {
+    Serial.println("");
     Serial.print("Timestamp: ");
     Serial.print(telemPacket.timestamp);
     Serial.println(" ms");
     Serial.print("State: ");
     Serial.println(telemPacket.state);
+    Serial.print("Battery voltage: ");
+    Serial.print(telemPacket.vBatt / 10.0);
+    Serial.println(" V");
     Serial.print("Altitude: ");
     Serial.print(telemPacket.altitude);
     Serial.println(" m");
@@ -659,7 +668,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -700,6 +709,9 @@ void setup()
     // Reset timer before entering loop
     timer.reset();
     previousTime = millis();
+
+    // Set system time to zero
+    loopStartTime = millis();
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -940,10 +952,9 @@ void loop()
         
         // Print telemPacket to Serial monitor for debugging
         if (counter % 10 == 0) {
-            // debugPrint();
+            debugPrint();
         }
 
         counter++;
-        timer.reset();
     }
 }

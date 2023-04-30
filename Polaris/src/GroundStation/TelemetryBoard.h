@@ -25,8 +25,9 @@ enum TransceiverState {
 struct TelemetryPacket {
     uint32_t timestamp; // System time from power board, running from startup onward. Given in milliseconds.
     uint8_t state;      // Rocket mission state from state machine.
-    float altitude;     // Converted altitude measurement (TODO: altitude estimate from EKF). Given in meters.
-    int8_t temperature; // Temperature measurement. (TODO: Implement this and figure out what units)
+    uint8_t vBatt;      // Battery voltage. Given in Volts. Scaled by 10.
+    float altitude;     // Converted altitude measurement. Given in meters.
+    int8_t temperature; // Temperature measurement. Given in degrees Celsius.
     uint8_t abPct;      // Airbrake actuation level. Given as percentage from 0 to 100.
     int16_t ac_x;       // X-axis acceleration. Given in m/s^2. Scaled by 100.
     int16_t ac_y;       // Y-axis acceleration. Given in m/s^2. Scaled by 100.
