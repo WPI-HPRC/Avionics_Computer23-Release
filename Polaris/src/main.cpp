@@ -673,7 +673,10 @@ void setup()
 
     // Flash memory initialization
     flash.init();
-    int startingAddress = flash.rememberAddress();
+    int startingAddress = 0;
+    if(telemBoard.getState() == TX) {
+        startingAddress = flash.rememberAddress();
+    }
     Serial.print("Flash Starting: ");
     Serial.println(startingAddress);
 
@@ -682,6 +685,7 @@ void setup()
     Wire.setClock(400000);
     SPI.begin();
 
+    Serial.println("Initializing sensor board...");
     if (sensorboard.setup())
     {
         Serial.println("Sensor setup sucess!");
@@ -692,7 +696,9 @@ void setup()
     }
 
     // IMU calibration
-    calibrateIMU();
+    if(telemBoard.getState() == TX) {
+        calibrateIMU();
+    }
 
     // Altitude AGL compensation
     calibrateAltitudeAGL();
@@ -701,7 +707,9 @@ void setup()
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     // Play a little song before entering main loop
-    mainLoopBeeps();
+    if(telemBoard.getState() == TX) {
+        mainLoopBeeps();
+    }
 
     // Turn off LEDs
     LEDsOff();
