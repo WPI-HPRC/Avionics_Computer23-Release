@@ -88,11 +88,11 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     float gyroZ = (float) rxPacket.gy_z / 10.0;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
 
-    int16_t totalVel = rxPacket.vel_total / 100.0;
+    int16_t totalVel = rxPacket.vel_vert / 100.0;
     uint8_t * tvB = (uint8_t *) &totalVel;
 
-    // float voltage = rxPacket.vBatt * 10.0;
-    // uint8_t * voltB = (uint8_t *) &voltage;
+    float voltage = rxPacket.vBatt / 20.0;
+    uint8_t * voltB = (uint8_t *) &voltage;
 
     Serial.print(PACKET_BEG);
     
@@ -157,11 +157,11 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.write(tvB[1]);
     Serial.write(tvB[0]);
 
-    // Serial.print(VOLTAGE_IDENT);
-    // Serial.write(voltB[3]);
-    // Serial.write(voltB[2]);
-    // Serial.write(voltB[1]);
-    // Serial.write(voltB[0]);
+    Serial.print(VOLTAGE_IDENT);
+    Serial.write(voltB[3]);
+    Serial.write(voltB[2]);
+    Serial.write(voltB[1]);
+    Serial.write(voltB[0]);
 
     Serial.print(PACKET_END);
 }

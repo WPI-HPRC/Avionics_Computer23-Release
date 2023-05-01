@@ -667,7 +667,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
