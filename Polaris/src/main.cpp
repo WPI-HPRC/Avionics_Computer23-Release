@@ -38,14 +38,14 @@ uint32_t timestamp;                               // timestamp for telemetry pac
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
-Metro coastTimer = Metro(COST_MIN_LENGTH);
+Metro coastTimer = Metro(COAST_MIN_LENGTH);       // 10 second timer to lock out apogee detect
 
 // Variables for recording loop timing
 long loopStartTime;
 long loopTime;
 long previousTime;
 
-// Declarations for state transition detection buffer
+// Declarations for state transition detection buffers
 // Z Acceleration buffer
 float transitionBufAcc[10];
 uint8_t transitionBufIndAcc = 0;
@@ -98,6 +98,8 @@ int songDurations[] = {
 
 // Flag for boost timer
 bool boostTimerElapsed = false;
+// Flag for coast timer
+bool coastFlag = false;
 
 // Variable for measured battery voltage
 float vBatt = 0.0;
@@ -112,8 +114,6 @@ int16_t mainPollCount = 0;
 
 int16_t sumDrogueDescentVel = 0;
 int16_t droguePollCount = 0;
-
-bool coastFlag = false;
 
 // Enumeration for rocket mission states
 enum AvionicsState
@@ -158,8 +158,7 @@ void calibrateIMU()
     float gy_y_error_sum = 0;
     float gy_z_error_sum = 0;
 
-    int c = 0;
-    while (c < 1000)
+    for (int i = 0; i < IMU_CALIBRATION_ITERS; i++)
     {
 
         readSensors();
@@ -171,17 +170,15 @@ void calibrateIMU()
         gy_x_error_sum = gy_x_error_sum + sensorPacket.gy_x;
         gy_y_error_sum = gy_y_error_sum + sensorPacket.gy_y;
         gy_z_error_sum = gy_z_error_sum + sensorPacket.gy_z;
-
-        c++;
     }
 
-    // Divide the sum by 12000 to get the error value
-    ac_x_error = ac_x_error_sum / c;
-    ac_y_error = ac_y_error_sum / c;
-    ac_z_error = ac_z_error_sum / c;
-    gy_x_error = gy_x_error_sum / c;
-    gy_y_error = gy_y_error_sum / c;
-    gy_z_error = gy_z_error_sum / c;
+    // Divide the sum by 1000 to get the error value
+    ac_x_error = ac_x_error_sum / IMU_CALIBRATION_ITERS;
+    ac_y_error = ac_y_error_sum / IMU_CALIBRATION_ITERS;
+    ac_z_error = ac_z_error_sum / IMU_CALIBRATION_ITERS;
+    gy_x_error = gy_x_error_sum / IMU_CALIBRATION_ITERS;
+    gy_y_error = gy_y_error_sum / IMU_CALIBRATION_ITERS;
+    gy_z_error = gy_z_error_sum / IMU_CALIBRATION_ITERS;
 
     Serial.print("ac_x_error: ");
     Serial.println(ac_x_error);
@@ -204,8 +201,7 @@ void calibrateAltitudeAGL()
 
     float altitude_error_sum = 0;
 
-    int c = 0;
-    while (c < 2000)
+    for (int i = 0; i < AGL_CALIBRATION_ITERS; i++)
     {
 
         readSensors();
@@ -213,12 +209,10 @@ void calibrateAltitudeAGL()
 
         // Sum all readings
         altitude_error_sum = altitude_error_sum + altitude;
-
-        c++;
     }
 
     // Divide the sum -to get the error value
-    altitude_AGL = altitude_error_sum / c;
+    altitude_AGL = altitude_error_sum / AGL_CALIBRATION_ITERS;
 
     Serial.print("altitude_AGL: ");
     Serial.println(altitude_AGL);
@@ -480,12 +474,6 @@ void doAirbrakeControls()
     airbrakeServo.setPosition(abPct);
 }
 
-// Send a message to place devices into low power mode and possibly decrease datalogging rate
-void lowPowerMode()
-{
-    // TODO: Do something. Probably want to send a state variable to all boards eventually.
-}
-
 // Print telemPacket to Serial monitor for debugging purposes
 void debugPrint()
 {
@@ -539,34 +527,45 @@ void debugPrint()
 
 void LEDon(String color)
 {
-    if (color == "RED") {
+    if (color == "RED")
+    {
         digitalWrite(RED_LED, HIGH);
-    } else if (color == "YELLOW") {
+    }
+    else if (color == "YELLOW")
+    {
         digitalWrite(YELLOW_LED, HIGH);
-    } else if (color == "BLUE") {
+    }
+    else if (color == "BLUE")
+    {
         digitalWrite(BLUE_LED, HIGH);
     }
-
 }
 
 void LEDoff(String color)
 {
-    if (color == "RED") {
+    if (color == "RED")
+    {
         digitalWrite(RED_LED, LOW);
-    } else if (color == "YELLOW") {
+    }
+    else if (color == "YELLOW")
+    {
         digitalWrite(YELLOW_LED, LOW);
-    } else if (color == "BLUE") {
+    }
+    else if (color == "BLUE")
+    {
         digitalWrite(BLUE_LED, LOW);
     }
 }
 
-void LEDsOn() {
+void LEDsOn()
+{
     LEDon("RED");
     LEDon("YELLOW");
     LEDon("BLUE");
 }
 
-void LEDsOff() {
+void LEDsOff()
+{
     LEDoff("RED");
     LEDoff("YELLOW");
     LEDoff("BLUE");
@@ -622,7 +621,8 @@ void mainLoopBeeps()
 }
 
 // Extend airbrake fins to maximum extension for 1 second, then retract.
-void testAirbrakes() {
+void testAirbrakes()
+{
     Serial.println("Testing airbrakes!");
     airbrakeServo.setPosition(100);
     delay(2000);
@@ -661,7 +661,8 @@ void setup()
     startupBeeps();
 
     // Perform airbrake extension test if button pressed
-    if (digitalRead(BUTTON_PIN)) {
+    if (digitalRead(BUTTON_PIN))
+    {
         testAirbrakes();
     }
 
@@ -672,7 +673,8 @@ void setup()
     // Flash memory initialization
     flash.init();
     int startingAddress = 0;
-    if(telemBoard.getState() == TX) {
+    if (telemBoard.getState() == TX)
+    {
         startingAddress = flash.rememberAddress();
     }
     Serial.print("Flash Starting: ");
@@ -694,7 +696,8 @@ void setup()
     }
 
     // IMU calibration
-    if(telemBoard.getState() == TX) {
+    if (telemBoard.getState() == TX)
+    {
         calibrateIMU();
     }
 
@@ -705,7 +708,8 @@ void setup()
     controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
     // Play a little song before entering main loop
-    if(telemBoard.getState() == TX) {
+    if (telemBoard.getState() == TX)
+    {
         mainLoopBeeps();
     }
 
@@ -717,7 +721,7 @@ void setup()
     previousTime = millis();
 
     // Set system time to zero
-    loopStartTime = millis() + 26;
+    loopStartTime = millis() + STARTUP_DELAY; // 26 millis for setup
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -774,8 +778,9 @@ void loop()
 
         case COAST:
             logData();
-            
-            if (counter % 8 == 0) {
+
+            if (counter % 8 == 0)
+            {
                 doAirbrakeControls();
             }
 
@@ -804,15 +809,6 @@ void loop()
                 avionicsState = DROGUE_DEPLOY;
                 break;
             }
-
-            // ABORT Case
-            // Pitch or roll exceeds 30 degrees from vertical
-            // if (stateStruct.vel_lat / stateStruct.vel_vert > PITCH_FRACTION)
-            // {
-            //     state_start = millis();
-            //     avionicsState = ABORT;
-            //     break;
-            // }
 
             // Acceleration is greater than 10g's
             // 10-15 second timeout on 10g check to ensure ejection load doesn't accidentally trigger ABORT
@@ -863,14 +859,6 @@ void loop()
                 avionicsState = MAIN_DEPLOY;
                 break;
             }
-
-            // // 120 second contingency timeout
-            // if (timeout(DROGUE_DESCENT_TIMEOUT)) {
-            //     Serial.println("Drogue Descent phase timeout triggered!");
-            //     state_start = millis();
-            //     avionicsState = MAIN_CONTINGENCY;
-            //     break;
-            // }
             break;
 
         case MAIN_DEPLOY:
@@ -925,7 +913,6 @@ void loop()
         case POSTFLIGHT:
             logData();
             // datalog slow
-            lowPowerMode();
             break;
 
         case ABORT:
@@ -952,12 +939,14 @@ void loop()
         doStateEstimation();
 
         // Transmit data packet to ground station at 10 Hz
-        if (counter % 5 == 0) {
+        if (counter % 5 == 0)
+        {
             sendTelemetry();
         }
-        
+
         // Print telemPacket to Serial monitor for debugging
-        if (counter % 10 == 0) {
+        if (counter % 10 == 0)
+        {
             // debugPrint();
         }
 
