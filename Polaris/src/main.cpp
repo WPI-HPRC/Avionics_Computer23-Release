@@ -829,7 +829,7 @@ void loop()
         case DROGUE_DEPLOY:
             logData();
             // 1 second timeout to average vertical velocity
-            if (!timeout(1000))
+            if (!timeout(2000))
             {
                 sumDrogueDescentVel += stateStruct.vel_vert;
                 droguePollCount += 1;
@@ -867,7 +867,7 @@ void loop()
         case MAIN_DEPLOY:
             logData();
             // 1 second timeout to average vertical velocity
-            if (!timeout(1000))
+            if (!timeout(5000))
             {
                 sumMainDescentVel += stateStruct.vel_vert;
                 mainPollCount += 1;
