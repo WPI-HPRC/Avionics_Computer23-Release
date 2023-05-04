@@ -18,7 +18,7 @@ StateEstimator stateEstimator;
 // Flash chip instantiation
 FlashChip flash = FlashChip();
 String structString = "";
-String circBuf[200];
+String circBuf[FLASH_BUFFER_SIZE];
 int circBufInd = 0;
 
 // Telemetry Board class
@@ -31,7 +31,7 @@ Sensorboard sensorboard;
 ServoDriver airbrakeServo(SERVO_PIN); // Instantiate airbrake servo
 
 // Main timer declarations
-Metro timer = Metro(CONVERSION / LOOP_FREQUENCY); // Hz converted to ms
+Metro timer = Metro(SECONDS / LOOP_FREQUENCY); // Hz converted to ms
 int counter = 0;                                  // counts how many times the loop runs
 unsigned long state_start;                        // must be set to millis() when entering a new state
 uint32_t timestamp;                               // timestamp for telemetry packet
@@ -98,6 +98,7 @@ int songDurations[] = {
 
 // Flag for boost timer
 bool boostTimerElapsed = false;
+
 // Flag for coast timer
 bool coastFlag = false;
 
@@ -148,6 +149,7 @@ bool timeout(uint32_t length)
 
 void readSensors();
 
+// Sample the IMU for a few seconds and calculate the static biases
 void calibrateIMU()
 {
 
@@ -196,6 +198,7 @@ void calibrateIMU()
 
 float pressureToAltitude(float pressure_mBar);
 
+// Take a bunch of altitude readings to establish ground level altitude
 void calibrateAltitudeAGL()
 {
 
@@ -211,7 +214,7 @@ void calibrateAltitudeAGL()
         altitude_error_sum = altitude_error_sum + altitude;
     }
 
-    // Divide the sum -to get the error value
+    // Divide the sum to get the error value
     altitude_AGL = altitude_error_sum / AGL_CALIBRATION_ITERS;
 
     Serial.print("altitude_AGL: ");
@@ -219,7 +222,7 @@ void calibrateAltitudeAGL()
 }
 
 // uses updated accel value to determine if the rocket has launched
-// stores 10 most recent values and computes current avg
+// stores 10 most recent accels and determines if average is greater than the threshold
 boolean launchDetect()
 {
     // accel value gets updated in sensor reading fcn
@@ -248,7 +251,7 @@ boolean launchDetect()
 }
 
 // detects if motor burnout has occurred (aka negative accel)
-// tracks 10 most recent accels and computes current average
+// tracks 10 most recent accels and determines if average is negative
 boolean motorBurnoutDetect()
 {
     // accel value gets updated in sensor reading fcn
@@ -277,6 +280,8 @@ boolean motorBurnoutDetect()
     return false;
 }
 
+// detects if the rocket has reached apogee
+// tracks the 10 most recent vertical velocities and determines if the average is negative
 boolean apogeeDetect()
 {
     // Velocity value gets updated in sensor reading fcn
@@ -347,7 +352,6 @@ boolean landingDetect()
 // Convert pressure in [mBar] to altitude in [m]
 float pressureToAltitude(float pressure_mBar)
 {
-
     // physical parameters for model
     const float pb = 101325;   // [Pa] pressure at sea level
     const float Tb = 288.15;   // [K] temperature at seal level
@@ -367,7 +371,6 @@ float pressureToAltitude(float pressure_mBar)
 // Construct the telemetry data packet. This is the struct that gets logged to the flash chip and transmitted to the ground station.
 void constructTelemPacket()
 {
-
     // Timestamp
     telemPacket.timestamp = millis() - loopStartTime;
 
@@ -401,7 +404,6 @@ void constructTelemPacket()
     telemPacket.vel_lat = (int16_t)(stateStruct.vel_lat * 100.0);
     telemPacket.vel_total = (int16_t)(stateStruct.vel_total * 100.0);
 
-    // TODO: Add GPS to telemPacket
 }
 
 // Read sensors and construct telemPacket
@@ -430,6 +432,7 @@ void readSensors()
     constructTelemPacket();
 }
 
+// adds a new telemPacket to the circular buffer
 void buildCircBuf()
 {
     structString = String(telemPacket.timestamp) + "," + String(telemPacket.state) + "," + String(telemPacket.altitude) + "," + String(telemPacket.temperature) + "," + String(telemPacket.abPct) + "," + String(telemPacket.ac_x) + "," + String(telemPacket.ac_y) + "," + String(telemPacket.ac_z) + "," + String(telemPacket.gy_x) + "," + String(telemPacket.gy_y) + "," + String(telemPacket.gy_z) + "," + String(telemPacket.vel_vert) + "," + String(telemPacket.vel_lat) + "," + String(telemPacket.vel_total) + "," + String(telemPacket.vBatt);
@@ -437,6 +440,7 @@ void buildCircBuf()
     circBufInd = (circBufInd + 1) % 200; // increment the index and wrap around if necessary
 }
 
+// writes circular buffer to flash chip
 void writeCircBuf()
 {
     for (int i = 0; i < 200; i++)
@@ -452,6 +456,7 @@ void logData()
     flash.writeStruct(structString);
 }
 
+// Transmit telemetry packet to ground station
 void sendTelemetry()
 {
     telemBoard.onLoop(telemPacket);
@@ -525,6 +530,7 @@ void debugPrint()
     Serial.println("");
 }
 
+// Turn on the LED of the given color
 void LEDon(String color)
 {
     if (color == "RED")
@@ -541,6 +547,7 @@ void LEDon(String color)
     }
 }
 
+// Turn off the LED of the given color
 void LEDoff(String color)
 {
     if (color == "RED")
@@ -557,6 +564,7 @@ void LEDoff(String color)
     }
 }
 
+// Turn on all LEDs
 void LEDsOn()
 {
     LEDon("RED");
@@ -564,6 +572,7 @@ void LEDsOn()
     LEDon("BLUE");
 }
 
+// Turn off all LEDs
 void LEDsOff()
 {
     LEDoff("RED");
@@ -571,6 +580,7 @@ void LEDsOff()
     LEDoff("BLUE");
 }
 
+// Initialize LED pins
 void initLEDs()
 {
     pinMode(RED_LED, OUTPUT);
@@ -578,6 +588,7 @@ void initLEDs()
     pinMode(BLUE_LED, OUTPUT);
 }
 
+// Blink the yellow LED as a heartbeat indicator in the main loop
 void blinkLED()
 {
     if (counter % 40 == 0)
@@ -593,10 +604,8 @@ void blinkLED()
 // Play a few beeps to indicate power on.
 void startupBeeps()
 {
-
     for (int thisNote = 0; thisNote < 7; thisNote++)
     {
-
         int noteDuration = 1000 / startupDurations[thisNote];
         tone(BUZZER_PIN, startupPitches[thisNote], noteDuration);
         int pauseBetweenNotes = noteDuration * 1.30;
@@ -608,10 +617,8 @@ void startupBeeps()
 // Play a song to indicate succesful setup and entering main loop.
 void mainLoopBeeps()
 {
-
     for (int thisNote = 0; thisNote < 26; thisNote++)
     {
-
         int noteDuration = 1400 / songDurations[thisNote];
         tone(BUZZER_PIN, songPitches[thisNote], noteDuration);
         int pauseBetweenNotes = noteDuration * 1.30;
@@ -644,6 +651,7 @@ void printLoopTime()
 void setup()
 {
     // Initialize airbrake servo and set to fully retracted position
+    //      Important: This needs to be the first thing in setup()
     airbrakeServo.init();
 
     // Communications setup
@@ -667,7 +675,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -695,26 +703,24 @@ void setup()
         Serial.println("Sensor setup failed.");
     }
 
-    // IMU calibration
+    // Run calibration routine if the board is a transmitter
     if (telemBoard.getState() == TX)
     {
+        // IMU calibration
         calibrateIMU();
-    }
 
-    // Altitude AGL compensation
-    calibrateAltitudeAGL();
+        // Altitude AGL compensation
+        calibrateAltitudeAGL();
 
-    // Set initial conditions for controller class
-    controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
+        // Set initial conditions for controller class
+        controller.setInitPressureTemp(sensorPacket.Pressure, sensorPacket.Temperature);
 
-    // Play a little song before entering main loop
-    if (telemBoard.getState() == TX)
-    {
+        // Play funny song before loop
         mainLoopBeeps();
-    }
 
-    // Turn off LEDs
-    LEDsOff();
+        // Turn off LEDs to indicate initialization complete
+        LEDsOff();
+    }
 
     // Reset timer before entering loop
     timer.reset();
@@ -758,8 +764,10 @@ void loop()
             break;
 
         case BOOST:
-            // Stay in this state for at least 3 seconds to prevent airbrake activation
+        
             logData();
+
+            // Stay in this state for at least 3 seconds to prevent airbrake activation
             if (boostTimer.check() == 1)
             {
                 boostTimerElapsed = true;
@@ -774,14 +782,25 @@ void loop()
                     break;
                 }
             }
+
+            // Wait 8 seconds before moving into COAST state by default
+            if (timeout(BOOST_TIMEOUT))
+            {
+                Serial.println("Boost phase timeout triggered!");
+                state_start = millis();
+                avionicsState = COAST;
+                break;
+            }
+
             break;
 
         case COAST:
+
             logData();
 
             if (counter % 8 == 0)
             {
-                doAirbrakeControls();
+                // doAirbrakeControls();
             }
 
             if (coastTimer.check() == 1)
@@ -794,8 +813,7 @@ void loop()
                 if (apogeeDetect())
                 {
                     abPct = 0;
-                    airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
-                    // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
+                    airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detection
                     state_start = millis();
                     avionicsState = DROGUE_DEPLOY;
                 }
@@ -834,7 +852,7 @@ void loop()
             else
             {
                 int16_t avgDescentRate = sumDrogueDescentVel / droguePollCount;
-                if (avgDescentRate <= DROGUE_DESCENT_THRESHOLD)
+                if (abs(avgDescentRate) <= DROGUE_DESCENT_THRESHOLD)
                 {
                     state_start = millis();
                     avionicsState = DROGUE_DESCENT;

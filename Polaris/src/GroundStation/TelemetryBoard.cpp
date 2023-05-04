@@ -4,6 +4,9 @@ TelemetryBoard::TelemetryBoard() {
     e32ttl.begin();
 }
 
+/**
+ * @brief Initialize the Telemetry Board Object: Set the configuration of the radio & print the parameters
+ */
 void TelemetryBoard::init() {
     ResponseStructContainer c;
     c = e32ttl.getConfiguration();
@@ -28,10 +31,22 @@ void TelemetryBoard::init() {
     c.close();
 }
 
+/**
+ * @brief Set the current state of the Telemetry board
+ * 
+ * @param newState - RX or TX
+ */
 void TelemetryBoard::setState(TransceiverState newState) {
     this->transmitterState = newState;
 }
 
+/**
+ * @brief Run a loop of the Telemetry board, used in both tx and rx modes
+ * @details If in tx mode, send the packet over the radio
+ * @details If in rx mode, receive the packet and print it to the ground station
+ * 
+ * @param telemPacket Current telemetry packet to use for transmission, NOTE: NOT USED IN RX MODE
+ */
 void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
     switch(transmitterState) {
         case(TX): {
@@ -58,42 +73,67 @@ void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
     }
 }
 
+/**
+ * @brief Parse packet the received packet and output over serial to the ground station backend
+ * 
+ * @param rxPacket 
+ */
 void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
+    //Split timestamp into unsigned int bytes
     uint32_t timestamp = rxPacket.timestamp;
     uint8_t * tspB = (uint8_t *) &timestamp;
 
     uint8_t state = rxPacket.state;
 
+    //Split altitude into IEE754 float bytes
     float altitude = rxPacket.altitude;
     uint8_t * altB = (uint8_t *) &altitude;
 
+    //De-Scale ACX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 2 decimal points
     float accelX = (float) rxPacket.ac_x / 100.0;
     uint8_t * acxB = (uint8_t *) &accelX;
 
+    //De-Scale ACY and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 2 decimal points
     float accelY = (float) rxPacket.ac_y / 100.0;
     uint8_t * acyB = (uint8_t *) &accelY;
-    
+
+    //De-Scale ACZ and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 2 decimal points
     float accelZ = (float) rxPacket.ac_z / 100.0;
     uint8_t * aczB = (uint8_t *) &accelZ;
 
-    // Serial.print("ACX: "); Serial.println(accelZ);
-    // Serial.print("ACX: "); Serial.println(rxPacket.ac_z);
-
+    //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 1 decimal point
     float gyroX = (float) rxPacket.gy_x / 10.0;
     uint8_t * gyX = (uint8_t *) &gyroX;
 
+    //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 1 decimal point
     float gyroY = (float) rxPacket.gy_x / 10.0;
     uint8_t * gyY = (uint8_t *) &gyroY;
     
+    //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 1 decimal point
     float gyroZ = (float) rxPacket.gy_z / 10.0;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
 
-    int16_t totalVel = rxPacket.vel_vert / 100.0;
-    uint8_t * tvB = (uint8_t *) &totalVel;
+    //De-Scale velocity and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
+    // Accuracy of 2 decimal points
+    float vertVel = rxPacket.vel_vert / 100.0;
+    uint8_t * tvB = (uint8_t *) &vertVel;
 
     float voltage = rxPacket.vBatt / 20.0;
     uint8_t * voltB = (uint8_t *) &voltage;
 
+    /* Write out to the groundstation following the following format
+    BEGB
+    <DATA_IDENTIFIER>_i <DATA>_i
+    ENDB
+    */
+    /* Identifiers are used to determine where the specific data is in the serial stream */
+    /* BEGB and ENDB are used to start and end a packet and are not required anymore but good practice to still use */
     Serial.print(PACKET_BEG);
     
     Serial.print(TIMESTAMP_IDENT);
@@ -166,6 +206,11 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
     Serial.print(PACKET_END);
 }
 
+/**
+ * @brief print out the configuration settings of the LoRa module
+ * 
+ * @param configuration Print LoRa configuration nicely 
+ */
 void TelemetryBoard::printParameters(struct Configuration configuration) {
     Serial.println("----------------------------------------");
 
@@ -188,6 +233,11 @@ void TelemetryBoard::printParameters(struct Configuration configuration) {
 
 }
 
+/**
+ * @brief Print out module information about the LoRa
+ * 
+ * @param moduleInformation 
+ */
 void TelemetryBoard::printModuleInformation(struct ModuleInformation moduleInformation) {
     Serial.println("----------------------------------------");
 	Serial.print(F("HEAD BIN: "));  Serial.print(moduleInformation.HEAD, BIN);Serial.print(" ");Serial.print(moduleInformation.HEAD, DEC);Serial.print(" ");Serial.println(moduleInformation.HEAD, HEX);

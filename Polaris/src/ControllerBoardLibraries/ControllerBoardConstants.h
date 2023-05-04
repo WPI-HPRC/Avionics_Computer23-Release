@@ -1,9 +1,12 @@
+// Mission parameters
 const double G = 9.80665;                   // m/s^2
 const float ACCEL_THRESHOLD = 3;            // g
 const int MAIN_DESCENT_THRESHOLD = 7;       // m/s TODO FIX THIS
 const int DROGUE_DESCENT_THRESHOLD = 30;    // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269;  // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;              // [m] ceiling for landing height in meters
+
+// Battery voltage sensing 
 const int ADC_RESOLUTION = 1024;            // resolution for 10-bit ADC
 const float ADC_FULL_SCALE_RANGE = 3.3;     // Maximum voltage read by ADC is 3.3V
 const int VOLTAGE_DIVIDER_RATIO = 3;        // Scale factor for reading voltage with voltage divider
@@ -14,8 +17,8 @@ const int HZ_40 = 40;
 
 const int STARTUP_DELAY = 26; // ms
 
-const int CONVERSION = 1000;
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
+
 // Set this to the desired Hz for the loop
 const int LOOP_FREQUENCY = HZ_40;
 const double METER_CONVERSION = 0.3048; // conversion from feet to meters
@@ -36,6 +39,9 @@ const uint32_t MAIN_DESCENT_TIMEOUT = 100 * SECONDS;
 // Calibration constants
 const int IMU_CALIBRATION_ITERS = 1000;
 const int AGL_CALIBRATION_ITERS = 2000;
+
+// Flash memory
+const int FLASH_BUFFER_SIZE = 200;
 
 // Pin declarations
 const int BLUE_LED = 6;
