@@ -152,24 +152,3 @@ void Controller::setInitPressureTemp(float initP, float initT) {
     pZero = initP;
     tZero = initT;
 }
-
-/*
-coef_drag_or = RAW_DATA_FULL{DATA_START:DATA_END, COL_VERT_ACCEL}; % nice, same as the velocity vector
-
-launch_alt = 0;
-rocketMass = 24.829;
-r_specific = 287.05;
-cel_to_kelvin = 273.15;
-
-accel_drag = accel + grav;
-temperature = temperature + cel_to_kelvin;
-pressure = pressure .* 100;
-
-%%
-
-rho = pressure ./ (r_specific .* temperature); %3.31e-9 * altitude.^2 - 1.14e-4.*altitude + 1.22;
-
-coef_drag = (2 * rocketMass .* accel_drag) ./ (rho * crossSectionalArea .* velocity.^2)
-
-
-*/

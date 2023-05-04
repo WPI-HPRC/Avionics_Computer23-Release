@@ -118,16 +118,16 @@ int16_t droguePollCount = 0;
 // Enumeration for rocket mission states
 enum AvionicsState
 {
-    STARTUP,
-    PRELAUNCH,
-    BOOST,
-    COAST,
-    DROGUE_DEPLOY,
-    DROGUE_DESCENT,
-    MAIN_DEPLOY,
-    MAIN_DESCENT,
-    POSTFLIGHT,
-    ABORT
+    STARTUP,        // Allows bootup of avionics
+    PRELAUNCH,      // Holds initial data in a circular buffer until launch is detected, then dumps data to flash chip from the circular buffer and enters the BOOST state
+    BOOST,          // Logs data to the flash chip, remains in the state for at least 3 seconds, then checks for motor burnout, then enters the COAST state
+    COAST,          // Logs data to the flash chip, remains in the state for at least 10 seconds, then checks for apogee, then enters the DROGUE_DEPLOY state, runs airbrakes every 8th loop. If no change is triggered after 30 seconds, moves to DROGUE_DEPLOY, aborts if acceleration is over 10 Gs
+    DROGUE_DEPLOY,  // Logs data to the flash chip, polls vertical velocity for 1 second, then sees if the average descent rate is below the threshold of 30 m/s, then moves to DROGUE_DESCENT if true. Aborts if been in state for longer than 10 seconds
+    DROGUE_DESCENT, // Logs data to the flash chip, and checks if the altitude is below 1500 ft, if true - moves to the MAIN_DEPLOY state
+    MAIN_DEPLOY,    // Logs data to the flash chip, polls vertical velocity for 1 second, then sees if the average descent rate is below the threshold of 7 m/s, then moves to MAIN_DESCENT if true. Aborts if been in state for longer than 10 seconds
+    MAIN_DESCENT,   // Logs data to the flash chip, and checks for landing, if true - moves to POSTFLIGHT. Moves to POSTFLIGHT if it has been in the state for longer than 100 seconds
+    POSTFLIGHT,     // Logs data to the flash chip
+    ABORT           // Logs data to the flash chip and fully retracts airbrakes
 };
 
 AvionicsState avionicsState = STARTUP;
@@ -138,6 +138,7 @@ bool timeout(uint32_t length)
     // check state length against current time - start time for the current state
     if (millis() - state_start >= length)
     {
+        // true if the time in state has reached the value of 'length' in milliseconds
         return true;
     }
     else
@@ -148,6 +149,7 @@ bool timeout(uint32_t length)
 
 void readSensors();
 
+// Assigns acceleration and gyroscope values to the average value polled over 1000 samples
 void calibrateIMU()
 {
 
@@ -180,22 +182,23 @@ void calibrateIMU()
     gy_y_error = gy_y_error_sum / IMU_CALIBRATION_ITERS;
     gy_z_error = gy_z_error_sum / IMU_CALIBRATION_ITERS;
 
-    Serial.print("ac_x_error: ");
-    Serial.println(ac_x_error);
-    Serial.print("ac_y_error: ");
-    Serial.println(ac_y_error);
-    Serial.print("ac_z_error: ");
-    Serial.println(ac_z_error);
-    Serial.print("gy_x_error: ");
-    Serial.println(gy_x_error);
-    Serial.print("gy_y_error: ");
-    Serial.println(gy_y_error);
-    Serial.print("gy_z_error: ");
-    Serial.println(gy_z_error);
+    // Serial.print("ac_x_error: ");
+    // Serial.println(ac_x_error);
+    // Serial.print("ac_y_error: ");
+    // Serial.println(ac_y_error);
+    // Serial.print("ac_z_error: ");
+    // Serial.println(ac_z_error);
+    // Serial.print("gy_x_error: ");
+    // Serial.println(gy_x_error);
+    // Serial.print("gy_y_error: ");
+    // Serial.println(gy_y_error);
+    // Serial.print("gy_z_error: ");
+    // Serial.println(gy_z_error);
 }
 
 float pressureToAltitude(float pressure_mBar);
 
+// Defines the above ground level altitude to be the average altitude over 2000 samples
 void calibrateAltitudeAGL()
 {
 
@@ -214,8 +217,8 @@ void calibrateAltitudeAGL()
     // Divide the sum -to get the error value
     altitude_AGL = altitude_error_sum / AGL_CALIBRATION_ITERS;
 
-    Serial.print("altitude_AGL: ");
-    Serial.println(altitude_AGL);
+    // Serial.print("altitude_AGL: ");
+    // Serial.println(altitude_AGL);
 }
 
 // uses updated accel value to determine if the rocket has launched
@@ -241,7 +244,7 @@ boolean launchDetect()
             transitionBufAcc[j] = 0;
         }
         transitionBufIndAcc = 0;
-        Serial.println("Launch detected!");
+        // Serial.println("Launch detected!");
         return true;
     }
     return false;
@@ -271,7 +274,7 @@ boolean motorBurnoutDetect()
             transitionBufAcc[j] = 0;
         }
         transitionBufIndAcc = 0;
-        Serial.println("Motor burnout detected!");
+        // Serial.println("Motor burnout detected!");
         return true;
     }
     return false;
@@ -299,7 +302,7 @@ boolean apogeeDetect()
             transitionBufVelVert[j] = 0;
         }
         transitionBufIndVelVert = 0;
-        Serial.println("Apogee detected!");
+        // Serial.println("Apogee detected!");
         return true;
     }
     return false;
@@ -336,7 +339,7 @@ boolean landingDetect()
             transitionBufAlt[j] = 0;
         }
         transitionBufIndAlt = 0;
-        Serial.println("Landing detected!");
+        // Serial.println("Landing detected!");
         return true;
     }
     transitionBufIndAlt = (transitionBufIndAlt + 1) % 10;
@@ -375,7 +378,7 @@ void constructTelemPacket()
     telemPacket.state = (uint8_t)avionicsState;
 
     // Battery voltage
-    telemPacket.vBatt = (uint8_t) (vBatt * 20);
+    telemPacket.vBatt = (uint8_t)(vBatt * 20); // TODO what is 20?
 
     // Altitude [m]
     telemPacket.altitude = altitude;
@@ -424,7 +427,7 @@ void readSensors()
     altitude = pressureToAltitude(sensorPacket.Pressure) - altitude_AGL;
 
     // Read battery voltage
-    vBatt = ((float)analogRead(VBATT_PIN) / (ADC_RESOLUTION/ADC_FULL_SCALE_RANGE)) * VOLTAGE_DIVIDER_RATIO;
+    vBatt = ((float)analogRead(VBATT_PIN) / (ADC_RESOLUTION / ADC_FULL_SCALE_RANGE)) * VOLTAGE_DIVIDER_RATIO;
 
     // Construct telemetry data packet
     constructTelemPacket();
@@ -623,7 +626,7 @@ void mainLoopBeeps()
 // Extend airbrake fins to maximum extension for 1 second, then retract.
 void testAirbrakes()
 {
-    Serial.println("Testing airbrakes!");
+    // Serial.println("Testing airbrakes!");
     airbrakeServo.setPosition(100);
     delay(2000);
     airbrakeServo.setPosition(0);
@@ -677,23 +680,23 @@ void setup()
     {
         startingAddress = flash.rememberAddress();
     }
-    Serial.print("Flash Starting: ");
-    Serial.println(startingAddress);
+    // Serial.print("Flash Starting: ");
+    // Serial.println(startingAddress);
 
     // Sensor initialization
     Wire.begin();
     Wire.setClock(400000);
     SPI.begin();
 
-    Serial.println("Initializing sensor board...");
-    if (sensorboard.setup())
-    {
-        Serial.println("Sensor setup sucess!");
-    }
-    else
-    {
-        Serial.println("Sensor setup failed.");
-    }
+    // Serial.println("Initializing sensor board...");
+    // if (sensorboard.setup())
+    // {
+    //     Serial.println("Sensor setup sucess!");
+    // }
+    // else
+    // {
+    //     Serial.println("Sensor setup failed.");
+    // }
 
     // IMU calibration
     if (telemBoard.getState() == TX)
@@ -758,8 +761,8 @@ void loop()
             break;
 
         case BOOST:
-            // Stay in this state for at least 3 seconds to prevent airbrake activation
             logData();
+            // Stay in this state for at least 3 seconds to prevent airbrake activation
             if (boostTimer.check() == 1)
             {
                 boostTimerElapsed = true;
@@ -795,7 +798,6 @@ void loop()
                 {
                     abPct = 0;
                     airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detecetion
-                    // TODO: Add some delay on a timer to ensure airbrakes get fully retracted
                     state_start = millis();
                     avionicsState = DROGUE_DEPLOY;
                 }
@@ -804,7 +806,7 @@ void loop()
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
             if (timeout(COAST_TIMEOUT))
             {
-                Serial.println("Coast phase timeout triggered!");
+                // Serial.println("Coast phase timeout triggered!");
                 state_start = millis();
                 avionicsState = DROGUE_DEPLOY;
                 break;
@@ -816,7 +818,7 @@ void loop()
             {
                 if (timeout(13000)) // currently 13 seconds
                 {
-                    Serial.println("Abort triggered by acceleration greater than 10g's");
+                    // Serial.println("Abort triggered by acceleration greate than 10g's");
                     state_start = millis();
                     avionicsState = ABORT;
                     break;
@@ -826,6 +828,7 @@ void loop()
 
         case DROGUE_DEPLOY:
             logData();
+            // 1 second timeout to average vertical velocity
             if (!timeout(1000))
             {
                 sumDrogueDescentVel += stateStruct.vel_vert;
@@ -863,8 +866,7 @@ void loop()
 
         case MAIN_DEPLOY:
             logData();
-            // TODO: Check for nominal main descent rate, then move into MAIN_DESCENT state
-            // Poll for a second?
+            // 1 second timeout to average vertical velocity
             if (!timeout(1000))
             {
                 sumMainDescentVel += stateStruct.vel_vert;
@@ -893,8 +895,7 @@ void loop()
             logData();
             // transmit data during this phase
 
-            // altitude below 50ft
-            // other checks?
+            // altitude below 20 meters
             if (landingDetect())
             {
                 state_start = millis();
@@ -904,7 +905,7 @@ void loop()
             // timeout after 100 seconds if other checks fail
             if (timeout(MAIN_DESCENT_TIMEOUT))
             {
-                Serial.println("Main Descent phase timeout triggered!");
+                // Serial.println("Main Descent phase timeout triggered!");
                 avionicsState = POSTFLIGHT;
                 break;
             }
@@ -921,8 +922,6 @@ void loop()
             // retract airbrakes
             abPct = 0;
             airbrakeServo.setPosition(0);
-            // stop all other processes
-            // Start sending high-fidelity data backwards in time from abort trigger to launch from flash
             break;
 
         default:
@@ -945,10 +944,10 @@ void loop()
         }
 
         // Print telemPacket to Serial monitor for debugging
-        if (counter % 10 == 0)
-        {
-            // debugPrint();
-        }
+        // if (counter % 10 == 0)
+        // {
+        //     // debugPrint();
+        // }
 
         counter++;
     }
