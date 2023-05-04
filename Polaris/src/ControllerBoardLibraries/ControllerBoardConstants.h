@@ -51,9 +51,3 @@ const int YELLOW_LED = 21;
 const int BUZZER_PIN = 8;
 const int BUTTON_PIN = 17;
 const int VBATT_PIN = 16;
-
-// Telemetry Scaling Factor
-const int ACCEL_SCALING = 100.0; // Ensures that the accelerometer data is sent as an integer over the radio to save transmit time
-const int GYRO_SCALING = 10.0; // Ensures that the gyro data is sent as an integer over the radio to save transmit time
-const int VELOCITY_SCALING = 100.0; // Ensures that the velocity data is sent as an integer over the radio to save transmit time
-const int VOLTAGE_SCALING = 20.0; // Ensures that the voltage data is sent as an integer over the radio to save transmit time

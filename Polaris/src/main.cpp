@@ -379,7 +379,7 @@ void constructTelemPacket()
     telemPacket.state = (uint8_t)avionicsState;
 
     // Battery voltage
-    telemPacket.vBatt = (uint8_t)(vBatt * VOLTAGE_SCALING); // TODO what is 20?
+    telemPacket.vBatt = (uint8_t)(vBatt * 20); // TODO what is 20?
 
     // Altitude [m]
     telemPacket.altitude = altitude;
@@ -391,19 +391,19 @@ void constructTelemPacket()
     telemPacket.abPct = abPct;
 
     // Acceleration (XYZ) [m/s^2] - Scaled by 100x for transmission
-    telemPacket.ac_x = (int16_t)(sensorPacket.ac_x * ACCEL_SCALING);
-    telemPacket.ac_y = (int16_t)(sensorPacket.ac_y * ACCEL_SCALING);
-    telemPacket.ac_z = (int16_t)(sensorPacket.ac_z * ACCEL_SCALING);
+    telemPacket.ac_x = (int16_t)(sensorPacket.ac_x * 100.0);
+    telemPacket.ac_y = (int16_t)(sensorPacket.ac_y * 100.0);
+    telemPacket.ac_z = (int16_t)(sensorPacket.ac_z * 100.0);
 
     // Angular rate (XYZ) [deg/s] - Scaled by 10x for transmission
-    telemPacket.gy_x = (int16_t)(sensorPacket.gy_x * GYRO_SCALING);
-    telemPacket.gy_y = (int16_t)(sensorPacket.gy_y * GYRO_SCALING);
-    telemPacket.gy_z = (int16_t)(sensorPacket.gy_z * GYRO_SCALING);
+    telemPacket.gy_x = (int16_t)(sensorPacket.gy_x * 10.0);
+    telemPacket.gy_y = (int16_t)(sensorPacket.gy_y * 10.0);
+    telemPacket.gy_z = (int16_t)(sensorPacket.gy_z * 10.0);
 
     // Velocity (vertical, lateral, total) [m/s]
-    telemPacket.vel_vert = (int16_t)(stateStruct.vel_vert * VELOCITY_SCALING);
-    telemPacket.vel_lat = (int16_t)(stateStruct.vel_lat * VELOCITY_SCALING);
-    telemPacket.vel_total = (int16_t)(stateStruct.vel_total * VELOCITY_SCALING);
+    telemPacket.vel_vert = (int16_t)(stateStruct.vel_vert * 100.0);
+    telemPacket.vel_lat = (int16_t)(stateStruct.vel_lat * 100.0);
+    telemPacket.vel_total = (int16_t)(stateStruct.vel_total * 100.0);
 
 }
 
