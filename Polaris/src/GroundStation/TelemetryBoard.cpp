@@ -1,4 +1,5 @@
 #include <GroundStation/TelemetryBoard.h>
+#include <ControllerBoardLibraries/ControllerBoardConstants.h>
 
 TelemetryBoard::TelemetryBoard() {
     e32ttl.begin();
@@ -91,40 +92,40 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
 
     //De-Scale ACX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 2 decimal points
-    float accelX = (float) rxPacket.ac_x / 100.0;
+    float accelX = (float) rxPacket.ac_x / ACCEL_SCALING;
     uint8_t * acxB = (uint8_t *) &accelX;
 
     //De-Scale ACY and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 2 decimal points
-    float accelY = (float) rxPacket.ac_y / 100.0;
+    float accelY = (float) rxPacket.ac_y / ACCEL_SCALING;
     uint8_t * acyB = (uint8_t *) &accelY;
 
     //De-Scale ACZ and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 2 decimal points
-    float accelZ = (float) rxPacket.ac_z / 100.0;
+    float accelZ = (float) rxPacket.ac_z / ACCEL_SCALING;
     uint8_t * aczB = (uint8_t *) &accelZ;
 
     //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 1 decimal point
-    float gyroX = (float) rxPacket.gy_x / 10.0;
+    float gyroX = (float) rxPacket.gy_x / GYRO_SCALING;
     uint8_t * gyX = (uint8_t *) &gyroX;
 
     //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 1 decimal point
-    float gyroY = (float) rxPacket.gy_x / 10.0;
+    float gyroY = (float) rxPacket.gy_x / GYRO_SCALING;
     uint8_t * gyY = (uint8_t *) &gyroY;
     
     //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 1 decimal point
-    float gyroZ = (float) rxPacket.gy_z / 10.0;
+    float gyroZ = (float) rxPacket.gy_z / GYRO_SCALING;
     uint8_t * gyZ = (uint8_t *) &gyroZ;
 
     //De-Scale velocity and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 2 decimal points
-    float vertVel = rxPacket.vel_vert / 100.0;
+    float vertVel = rxPacket.vel_vert / VELOCITY_SCALING;
     uint8_t * tvB = (uint8_t *) &vertVel;
 
-    float voltage = rxPacket.vBatt / 20.0;
+    float voltage = rxPacket.vBatt / VOLTAGE_SCALING;
     uint8_t * voltB = (uint8_t *) &voltage;
 
     /* Write out to the groundstation following the following format
