@@ -625,7 +625,7 @@ void mainLoopBeeps()
 void testAirbrakes() {
     Serial.println("Testing airbrakes!");
     airbrakeServo.setPosition(100);
-    delay(1000);
+    delay(2000);
     airbrakeServo.setPosition(0);
 }
 
@@ -643,6 +643,9 @@ void printLoopTime()
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
+    // Initialize airbrake servo and set to fully retracted position
+    airbrakeServo.init();
+
     // Communications setup
     Serial.begin(57600);
 
@@ -656,10 +659,6 @@ void setup()
 
     // Play tones on startup
     startupBeeps();
-
-    // Initialize airbrake servo and set to fully retracted position
-    airbrakeServo.init();
-    airbrakeServo.setPosition(0);
 
     // Perform airbrake extension test if button pressed
     if (digitalRead(BUTTON_PIN)) {
