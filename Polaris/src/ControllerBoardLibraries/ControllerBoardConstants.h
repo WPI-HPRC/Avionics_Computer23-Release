@@ -15,7 +15,7 @@ const int HZ_10 = 10;
 const int HZ_100 = 100;
 const int HZ_40 = 40;
 
-const int STARTUP_DELAY = 26; // ms
+const int STARTUP_DELAY = 26; // ms, 25 ms for 1 loop, 1 ms for processing time
 
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 
