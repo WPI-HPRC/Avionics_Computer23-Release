@@ -1,0 +1,28 @@
+{
+  "name": "flashdatawriterprogram",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "bin": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node main.js",
+    "build": "nexe -r "
+
+  },
+  "author": "Daniel Pearson",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^3.3.1",
+    "serialport": "^9.2.8"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/@serialport/**/*"
+    ],
+    "targets": [
+      "node16-win-x64"
+    ]
+  }
+
+}
