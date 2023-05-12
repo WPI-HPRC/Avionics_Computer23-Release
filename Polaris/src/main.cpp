@@ -694,15 +694,15 @@ void setup()
     Wire.setClock(400000);
     SPI.begin();
 
-    // Serial.println("Initializing sensor board...");
-    // if (sensorboard.setup())
-    // {
-    //     Serial.println("Sensor setup sucess!");
-    // }
-    // else
-    // {
-    //     Serial.println("Sensor setup failed.");
-    // }
+    Serial.println("Initializing sensor board...");
+    if (sensorboard.setup())
+    {
+        Serial.println("Sensor setup sucess!");
+    }
+    else
+    {
+        Serial.println("Sensor setup failed.");
+    }
 
     // Run calibration routine if the board is a transmitter
     if (telemBoard.getState() == TX)
@@ -961,7 +961,7 @@ void loop()
         // Print telemPacket to Serial monitor for debugging
         // if (counter % 10 == 0)
         // {
-        //     // debugPrint();
+        //     debugPrint();
         // }
 
         counter++;
