@@ -6,6 +6,9 @@ const int DROGUE_DESCENT_THRESHOLD = 30;    // m/s TODO FIX THIS
 const double PITCH_FRACTION = 0.577350269;  // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;              // [m] ceiling for landing height in meters
 
+// Airbrakes
+const int CONST_EXTENSION = 50;
+
 // Battery voltage sensing 
 const int ADC_RESOLUTION = 1024;            // resolution for 10-bit ADC
 const float ADC_FULL_SCALE_RANGE = 3.3;     // Maximum voltage read by ADC is 3.3V
@@ -15,7 +18,7 @@ const int HZ_10 = 10;
 const int HZ_100 = 100;
 const int HZ_40 = 40;
 
-const int STARTUP_DELAY = 26; // ms, 25 ms for 1 loop, 1 ms for processing time
+const int STARTUP_DELAY = 25; // ms, 25 ms for 1 loop, 1 ms for processing time
 
 const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 

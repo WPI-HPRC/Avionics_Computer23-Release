@@ -728,7 +728,7 @@ void setup()
     previousTime = millis();
 
     // Set system time to zero
-    loopStartTime = millis() + STARTUP_DELAY; // 26 millis for setup
+    loopStartTime = millis() + STARTUP_DELAY; // 25 millis for setup
 }
 
 // Built-in Arduino loop function. Executes main control loop at a specified frequency.
@@ -788,6 +788,8 @@ void loop()
                 Serial.println("Boost phase timeout triggered!");
                 state_start = millis();
                 avionicsState = COAST;
+                abPct = CONST_EXTENSION;
+                airbrakeServo.setPosition(CONST_EXTENSION);
                 break;
             }
 
@@ -959,10 +961,10 @@ void loop()
         }
 
         // Print telemPacket to Serial monitor for debugging
-        // if (counter % 10 == 0)
-        // {
-        //     // debugPrint();
-        // }
+        if (counter % 10 == 0)
+        {
+            debugPrint();
+        }
 
         counter++;
     }
