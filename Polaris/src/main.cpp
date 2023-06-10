@@ -676,7 +676,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(RX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -963,7 +963,7 @@ void loop()
         // Print telemPacket to Serial monitor for debugging
         if (counter % 10 == 0)
         {
-            debugPrint();
+            // debugPrint();
         }
 
         counter++;

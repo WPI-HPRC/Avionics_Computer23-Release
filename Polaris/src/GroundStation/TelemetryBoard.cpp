@@ -1,13 +1,14 @@
 #include <GroundStation/TelemetryBoard.h>
 
 TelemetryBoard::TelemetryBoard() {
-    e32ttl.begin();
+    
 }
 
 /**
  * @brief Initialize the Telemetry Board Object: Set the configuration of the radio & print the parameters
  */
 void TelemetryBoard::init() {
+    e32ttl.begin();
     ResponseStructContainer c;
     c = e32ttl.getConfiguration();
     Configuration config = *(Configuration*) c.data;

@@ -1,11 +1,12 @@
 #include "Flash.h"
 
 FlashChip::FlashChip() {
-    flash = new SPIFlash(10);
+    
 }
 
 void FlashChip::init() {
     Serial.println("[Flash Chip]: Beginning initialization");
+    flash = new SPIFlash(10);
 
     flash->begin();
 
