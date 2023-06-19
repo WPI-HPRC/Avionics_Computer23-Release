@@ -7,7 +7,9 @@ const double PITCH_FRACTION = 0.577350269;  // 1/sqrt(3) or tan(30 degrees)
 const int LAND_THRESHOLD = 20;              // [m] ceiling for landing height in meters
 
 // Airbrakes
-const int CONST_EXTENSION = 0;
+const int CONST_EXTENSION = 50;
+const int AB_START_DELAY = 1;
+const int AB_OFF_DELAY= 21;
 
 // Battery voltage sensing 
 const int ADC_RESOLUTION = 1024;            // resolution for 10-bit ADC

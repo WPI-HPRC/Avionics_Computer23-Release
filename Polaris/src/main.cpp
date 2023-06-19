@@ -38,6 +38,8 @@ uint32_t timestamp;                               // timestamp for telemetry pac
 
 Metro prelaunchTimer = Metro(PRELAUNCH_INTERVAL); // 1 second timer to stay in STARTUP before moving to PRELAUNCH
 Metro boostTimer = Metro(BOOST_MIN_LENGTH);       // 3 second timer to ensure BOOST state is locked before possibility of state change
+Metro ab_start_timer = Metro(AB_START_DELAY);     // time interval to wait after motor burnout before deploying airbrakes
+Metro ab_off_timer = Metro(AB_OFF_DELAY);         // time interval to keep airbrakes extended during coast
 Metro coastTimer = Metro(COAST_MIN_LENGTH);       // 10 second timer to lock out apogee detect
 
 // Variables for recording loop timing
@@ -101,6 +103,10 @@ bool boostTimerElapsed = false;
 
 // Flag for coast timer
 bool coastFlag = false;
+
+// Airbrake flags
+bool abStartFlag = false;
+bool abEndFlag = false;
 
 // Variable for measured battery voltage
 float vBatt = 0.0;
@@ -648,6 +654,23 @@ void printLoopTime()
     Serial.println(" ms");
 }
 
+// Change state to coast and reset relevant timers
+void transitionToCoast() {
+    state_start = millis();
+    avionicsState = COAST;
+    coastTimer.reset();
+    ab_start_timer.reset();
+    ab_off_timer.reset();
+}
+
+// Change state to drogue deploy and reset relevant timers
+void transitionToDrogueDeploy() {
+    abPct = 0;
+    airbrakeServo.setPosition(0);
+    state_start = millis();
+    avionicsState = DROGUE_DEPLOY;
+}
+
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
@@ -776,8 +799,8 @@ void loop()
             {
                 if (motorBurnoutDetect())
                 {
-                    state_start = millis();
-                    avionicsState = COAST;
+                    Serial.println("Motor burnout detected!");
+                    transitionToCoast();
                     break;
                 }
             }
@@ -786,10 +809,7 @@ void loop()
             if (timeout(BOOST_TIMEOUT))
             {
                 Serial.println("Boost phase timeout triggered!");
-                state_start = millis();
-                avionicsState = COAST;
-                abPct = CONST_EXTENSION;
-                airbrakeServo.setPosition(CONST_EXTENSION);
+                transitionToCoast();
                 break;
             }
 
@@ -809,10 +829,27 @@ void loop()
                 coastFlag = true;
             }
 
+            if (ab_start_timer.check() == 1)
+            {
+                abStartFlag = true;
+            }
+
+            if (ab_off_timer.check() == 1) 
+            {
+                abEndFlag = true;
+            }
+
+            if (abStartFlag && !abEndFlag)
+            {
+                abPct = CONST_EXTENSION;
+                airbrakeServo.setPosition(CONST_EXTENSION);
+            }
+
             if (coastFlag)
             {
                 if (apogeeDetect())
                 {
+                    Serial.println("Apogee detected!");
                     abPct = 0;
                     airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detection
                     state_start = millis();
@@ -824,8 +861,7 @@ void loop()
             if (timeout(COAST_TIMEOUT))
             {
                 // Serial.println("Coast phase timeout triggered!");
-                state_start = millis();
-                avionicsState = DROGUE_DEPLOY;
+                transitionToDrogueDeploy();
                 break;
             }
 
