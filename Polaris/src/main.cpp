@@ -272,6 +272,8 @@ boolean motorBurnoutDetect()
     }
     sum = sum / 10.0;
 
+    Serial.println(sum);
+
     transitionBufIndAcc = (transitionBufIndAcc + 1) % 10;
     // compare running average value to defined threshold
     if (sum < 0)
@@ -675,7 +677,7 @@ void transitionToDrogueDeploy() {
 void setup()
 {
     // Initialize airbrake servo and set to fully retracted position
-    //      Important: This needs to be the first thing in setup()
+    //      IMPORTANT: This needs to be the first thing in setup()
     airbrakeServo.init();
 
     // Communications setup
@@ -699,7 +701,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(RX);
+    telemBoard.setState(TX);
     telemBoard.init();
 
     // Flash memory initialization
@@ -788,7 +790,9 @@ void loop()
             break;
 
         case BOOST:
+
             logData();
+
             // Stay in this state for at least 3 seconds to prevent airbrake activation
             if (boostTimer.check() == 1)
             {
@@ -799,7 +803,6 @@ void loop()
             {
                 if (motorBurnoutDetect())
                 {
-                    Serial.println("Motor burnout detected!");
                     transitionToCoast();
                     break;
                 }
@@ -843,6 +846,9 @@ void loop()
             {
                 abPct = CONST_EXTENSION;
                 airbrakeServo.setPosition(CONST_EXTENSION);
+            } else {
+                abPct = 0;
+                airbrakeServo.setPosition(0);
             }
 
             if (coastFlag)
@@ -850,17 +856,14 @@ void loop()
                 if (apogeeDetect())
                 {
                     Serial.println("Apogee detected!");
-                    abPct = 0;
-                    airbrakeServo.setPosition(0); // Retract airbrakes fully upon apogee detection
-                    state_start = millis();
-                    avionicsState = DROGUE_DEPLOY;
+                    transitionToDrogueDeploy();
                 }
             }
 
             // Wait 30 seconds before moving into DROGUE_DEPLOY state if all else fails
             if (timeout(COAST_TIMEOUT))
             {
-                // Serial.println("Coast phase timeout triggered!");
+                Serial.println("Coast phase timeout triggered!");
                 transitionToDrogueDeploy();
                 break;
             }

@@ -1,3 +1,5 @@
+const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
+
 // Mission parameters
 const double G = 9.80665;                   // m/s^2
 const float ACCEL_THRESHOLD = 3;            // g
@@ -8,8 +10,8 @@ const int LAND_THRESHOLD = 20;              // [m] ceiling for landing height in
 
 // Airbrakes
 const int CONST_EXTENSION = 50;
-const int AB_START_DELAY = 1;
-const int AB_OFF_DELAY= 21;
+const int AB_START_DELAY = 1 * SECONDS;
+const int AB_OFF_DELAY= 21 * SECONDS;
 
 // Battery voltage sensing 
 const int ADC_RESOLUTION = 1024;            // resolution for 10-bit ADC
@@ -21,8 +23,6 @@ const int HZ_100 = 100;
 const int HZ_40 = 40;
 
 const int STARTUP_DELAY = 25; // ms, 25 ms for 1 loop, 1 ms for processing time
-
-const int SECONDS = 1000; // scaling factor to convert from seconds to milliseconds
 
 // Set this to the desired Hz for the loop
 const int LOOP_FREQUENCY = HZ_40;
