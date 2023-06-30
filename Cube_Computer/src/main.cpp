@@ -5,13 +5,10 @@
 #include <MS5x.h>
 #include <GroundStation/Telemetry.h>
 
-#include ".\lib\Metro\Metro.h"
+#include <./lib/Metro/Metro.h>
 #include "Config.h"
 
-#define LOOP_FREQUENCY 1
-#define CUBE_NAME "Alvin"
-
-Metro timer = Metro(1000 / LOOP_FREQUENCY);
+Metro timer = Metro(1000 / 10);
 int counter = 0;
 uint32_t timestamp = 0;
 
@@ -23,19 +20,16 @@ sensors_event_t humidity, temp;
 uint32_t nextAddress = 0;
 String structString = "";
 double pressure = 0;
-double tempC = 0;
-
-TelemetryBoard telemetry = TelemetryBoard();
+double tempF = 0;
 
 void setup()
 {
   Wire.begin();
   Serial.begin(9600); // Start serial communication at 9600 baud
-  Serial.println("Starting...");
 
   SPI.begin();
 
-  telemetry.init();
+  Serial.println(" ");
 
   while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
     Serial.println(F("Error connecting to barometer..."));
@@ -63,53 +57,36 @@ void setup()
   }
   Serial.println("AHT20 Found");
 
-  // if (flash.begin())
-  // {
-  //   Serial.println("Flash Chip Found");
-  // }
+  if (flash.begin())
+  {
+    Serial.println("Flash Chip Found");
+  }
 
-  // Serial.print("Flash Capacity: ");
-  // Serial.println(flash.getCapacity());
-  // Serial.print("Max Page: ");
-  // Serial.println(flash.getMaxPage());
-  // Serial.println("[Flash Chip]: Initialization Complete");
+  Serial.print("Flash Capacity: ");
+  Serial.println(flash.getCapacity());
+  Serial.print("Max Page: ");
+  Serial.println(flash.getMaxPage());
+  Serial.println("[Flash Chip]: Initialization Complete");
 
-  // if (flash.eraseChip())
-  // {
-  //   Serial.println("Chip Erased");
-  // }
-  // else
-  // {
-  //   Serial.println("Chip Erase Failed");
-  // }
-
-  telemetry.setState(TX);
 }
 
 void loop()
 {
 
   if(timer.check() == 1) {
-    timestamp = counter * (1000 / LOOP_FREQUENCY);
+    timestamp = counter * (1000/10);
 
     barometer.checkUpdates(); // apparently this will keep the barometer from delaying code execution
-    tempC = tmp.readTempC();
+    tempF = tmp.readTempF();
     aht.getEvent(&humidity, &temp);
     pressure = barometer.GetPres();
 
-    structString = String(tempC) + "," + String(pressure) + "," + String(humidity.relative_humidity);
+    structString = String(timestamp) + "," + String(tempF) + "," + String(pressure) + "," + String(humidity.relative_humidity);
+    flash.writeStr(nextAddress, structString, true);
     nextAddress += 256;
-    // flash.writeStr(nextAddress, structString, true);
 
-    TelemetryPacket updatedPacket = {
-      "ALVIN",
-      timestamp,
-      pressure,
-      humidity.relative_humidity,
-      tempC
-    };
 
-    telemetry.onLoop(updatedPacket);
+    Serial.println(structString);
 
     counter++;
     timer.reset();

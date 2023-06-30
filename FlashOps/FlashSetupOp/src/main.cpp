@@ -39,15 +39,6 @@ void setup() {
     Serial.println("Chip Erase Failed");
   }
 
-  // Things for testing the remembering address method 
-
-  String data = String(256);
-  String read = "";
-
-  flash.writeStr(0, data, true); // write 256 to address 0
-  flash.readStr(0, read); 
-  Serial.println(read);
-
 }
 
 void loop() {

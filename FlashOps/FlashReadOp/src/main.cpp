@@ -2,17 +2,19 @@
 #include <SPIFlash.h>
 #include <Wire.h>
 
-SPIFlash flash = SPIFlash(10); // 7 for Cube Board, 10 for Polaris
-uint32_t nextAddress = 256;
+SPIFlash flash = SPIFlash(7); // 7 for Cube Board, 10 for Polaris
+uint32_t nextAddress = 16777216 * 0.875;
 String structString = "";
 String addressString = "";
 String read = "";
 boolean done = false;
+String data = "";
+
 
 void setup()
 {
   Wire.begin();
-  Serial.begin(115200);
+  Serial.begin(9600); // 115200 for Polaris, 9600 for Cube Board
 
   while (!Serial)
   {
@@ -36,13 +38,12 @@ void loop()
 
   // ====================== Reading Flash ======================
 
-  nextAddress += 256; 
-  String data = "";
+  while (nextAddress < 16777216 ){
+    flash.readStr(nextAddress, data, true);
+    Serial.println(data);
 
-  // Serial.print("Data from Flash:  "); 
-  flash.readStr(nextAddress, data, true);
-  Serial.println(data);
+    nextAddress += 256; 
+  }
 
-  delay(10);
 
 }
