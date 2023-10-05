@@ -71,6 +71,10 @@ void TelemetryBoard::onLoop(TelemetryPacket telemPacket) {
 
             break;
         }
+        case(SIM): {
+
+            printPacketToGS(telemPacket);
+        }
     }
 }
 

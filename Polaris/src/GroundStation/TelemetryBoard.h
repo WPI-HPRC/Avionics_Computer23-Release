@@ -19,7 +19,7 @@
 #include <GroundStation/LoRa_E32.h>
 
 enum TransceiverState {
-    RX, TX
+    RX, TX, SIM
 };
 
 struct TelemetryPacket {

@@ -9,6 +9,8 @@
 #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
 
+#define AvionicsSim true // Simulates data through ground station as if it were a receiver
+
 // Airbrake controller class
 Controller controller;
 
@@ -134,7 +136,8 @@ enum AvionicsState
     MAIN_DEPLOY,    // Logs data to the flash chip, polls vertical velocity for 1 second, then sees if the average descent rate is below the threshold of 7 m/s, then moves to MAIN_DESCENT if true. Aborts if been in state for longer than 10 seconds
     MAIN_DESCENT,   // Logs data to the flash chip, and checks for landing, if true - moves to POSTFLIGHT. Moves to POSTFLIGHT if it has been in the state for longer than 100 seconds
     POSTFLIGHT,     // Logs data to the flash chip
-    ABORT           // Logs data to the flash chip and fully retracts airbrakes
+    ABORT,           // Logs data to the flash chip and fully retracts airbrakes
+    SIMULATION
 };
 
 AvionicsState avionicsState = STARTUP;
@@ -189,6 +192,8 @@ void calibrateIMU()
     gy_y_error = gy_y_error_sum / IMU_CALIBRATION_ITERS;
     gy_z_error = gy_z_error_sum / IMU_CALIBRATION_ITERS;
 
+    Serial.println("IMU Calibration Complete");
+
     // Serial.print("ac_x_error: ");
     // Serial.println(ac_x_error);
     // Serial.print("ac_y_error: ");
@@ -224,8 +229,8 @@ void calibrateAltitudeAGL()
     // Divide the sum to get the error value
     altitude_AGL = altitude_error_sum / AGL_CALIBRATION_ITERS;
 
-    // Serial.print("altitude_AGL: ");
-    // Serial.println(altitude_AGL);
+    Serial.print("altitude_AGL: ");
+    Serial.println(altitude_AGL);
 }
 
 // uses updated accel value to determine if the rocket has launched
@@ -701,7 +706,7 @@ void setup()
     }
 
     // Telemetry initialization
-    telemBoard.setState(TX);
+    telemBoard.setState(SIM);
     telemBoard.init();
 
     // Flash memory initialization
@@ -746,6 +751,11 @@ void setup()
 
         // Turn off LEDs to indicate initialization complete
         LEDsOff();
+    } else if(telemBoard.getState() == SIM) {
+
+        calibrateIMU();
+        calibrateAltitudeAGL();
+
     }
 
     // Reset timer before entering loop
@@ -773,6 +783,10 @@ void loop()
             if (prelaunchTimer.check() == 1)
             {
                 avionicsState = PRELAUNCH;
+                state_start = millis();
+            }
+            if(AvionicsSim) {
+                avionicsState = SIMULATION;
                 state_start = millis();
             }
             break;
@@ -978,6 +992,9 @@ void loop()
             // retract airbrakes
             abPct = 0;
             airbrakeServo.setPosition(0);
+            break;
+        
+        case SIMULATION:
             break;
 
         default:
