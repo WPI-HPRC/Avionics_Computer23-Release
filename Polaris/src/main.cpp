@@ -178,7 +178,7 @@ void calibrateIMU()
         // Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
         ac_y_error_sum = ac_y_error_sum + sensorPacket.ac_y;
-        ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
+        // ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
         gy_x_error_sum = gy_x_error_sum + sensorPacket.gy_x;
         gy_y_error_sum = gy_y_error_sum + sensorPacket.gy_y;
         gy_z_error_sum = gy_z_error_sum + sensorPacket.gy_z;
@@ -187,7 +187,7 @@ void calibrateIMU()
     // Divide the sum by 1000 to get the error value
     ac_x_error = ac_x_error_sum / IMU_CALIBRATION_ITERS;
     ac_y_error = ac_y_error_sum / IMU_CALIBRATION_ITERS;
-    ac_z_error = ac_z_error_sum / IMU_CALIBRATION_ITERS;
+    // ac_z_error = ac_z_error_sum / IMU_CALIBRATION_ITERS;
     gy_x_error = gy_x_error_sum / IMU_CALIBRATION_ITERS;
     gy_y_error = gy_y_error_sum / IMU_CALIBRATION_ITERS;
     gy_z_error = gy_z_error_sum / IMU_CALIBRATION_ITERS;
