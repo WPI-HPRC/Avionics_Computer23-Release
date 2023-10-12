@@ -25,7 +25,7 @@ const int HZ_40 = 40;
 const int STARTUP_DELAY = 25; // ms, 25 ms for 1 loop, 1 ms for processing time
 
 // Set this to the desired Hz for the loop
-const int LOOP_FREQUENCY = HZ_40;
+const int LOOP_FREQUENCY = HZ_100;
 const double METER_CONVERSION = 0.3048; // conversion from feet to meters
 
 // Timer constants

@@ -1011,7 +1011,7 @@ void loop()
         doStateEstimation();
 
         // Transmit data packet to ground station at 10 Hz
-        if (counter % 5 == 0)
+        if (counter % 1 == 0)
         {
             sendTelemetry();
         }

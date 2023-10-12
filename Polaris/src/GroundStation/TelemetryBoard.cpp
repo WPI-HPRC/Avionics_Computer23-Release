@@ -116,7 +116,7 @@ void TelemetryBoard::printPacketToGS(TelemetryPacket rxPacket) {
 
     //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
     // Accuracy of 1 decimal point
-    float gyroY = (float) rxPacket.gy_x / 10.0;
+    float gyroY = (float) rxPacket.gy_y / 10.0;
     uint8_t * gyY = (uint8_t *) &gyroY;
     
     //De-Scale GYX and recover the float from the scaled int sent over the radio (Avoids sending floats over the radio)
