@@ -6,8 +6,9 @@
 #include "ControllerBoardLibraries/StateEstimator.h"
 #include "ControllerBoardLibraries/pitches.h"
 #include "lib/Flash/Flash.h"
-#include "SensorBoardLibraries/SensorBoard.hpp"
+// #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
+#include <EKF/StateEstimator.h>
 
 #define AvionicsSim true // Simulates data through ground station as if it were a receiver
 
@@ -476,14 +477,6 @@ void sendTelemetry()
     telemBoard.onLoop(telemPacket);
 }
 
-// Perform state estimation for the launch vehicle
-//  Inputs: raw sensor data (currently altitude + total acceleration)
-//  Output: stateStruct (currently vertical, lateral, and total veloctity)
-void doStateEstimation()
-{
-    stateStruct = stateEstimator.getState(altitude, sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z);
-}
-
 // Compute airbrake actuation percent from controller class.
 //  Inputs: vertical velocity, lateral velocity, altitude
 //  Output: airbrake actuation level as a percent from 0 to 100
@@ -678,6 +671,47 @@ void transitionToDrogueDeploy() {
     avionicsState = DROGUE_DEPLOY;
 }
 
+// Setup Kalman Filter an Obtain Initial Estimate
+QuatStateEstimator * estimator;
+constexpr static int initialLoopIters = 1000;
+
+BLA::Matrix<4> obtainInitialEstimate() {
+    float accelXSum = 0;
+    float accelYSum = 0;
+    float accelZSum = 0;
+
+    for(int i=0; i < initialLoopIters; i++) {
+        readSensors();
+        accelXSum += sensorPacket.ac_x;
+        accelYSum += sensorPacket.ac_y;
+        accelZSum += sensorPacket.ac_z;
+    };
+
+    float accelXAvg = accelXSum / initialLoopIters;
+    float accelYAvg = accelYSum / initialLoopIters;
+    float accelZAvg = accelZSum / initialLoopIters; 
+
+    float roll_0 = atan(accelYAvg / accelZAvg); // [deg]
+    float pitch_0 = atan(accelXAvg / G); // [deg]
+    float yaw_0 = 0; // [deg]
+
+    float cr = cos(roll_0 * 0.5);
+    float sr = sin(roll_0 * 0.5);
+    float cp = cos(pitch_0 * 0.5);
+    float sp = sin(pitch_0 * 0.5);
+    float cy = cos(yaw_0 * 0.5);
+    float sy = sin(yaw_0 * 0.5);
+
+    BLA::Matrix<4> x_update = {
+        cr*cp*cy + sr*sp*sy,
+        sr*cp*cy - cr*sp*sy,
+        cr*sp*cy + sr*cp*sy,
+        cr*cp*sy - sr*sp*cy
+    };
+
+    return x_update;
+};
+
 // Built-in Arduino setup function. Performs initilization tasks on startup.
 void setup()
 {
@@ -757,6 +791,16 @@ void setup()
         calibrateAltitudeAGL();
 
     }
+
+    BLA::Matrix<4> x_0 = obtainInitialEstimate();
+
+    Serial.println("----- Initial State -----");
+    Serial.println("W: " + String(x_0(0)));
+    Serial.println("I: " + String(x_0(1)));
+    Serial.println("J: " + String(x_0(2)));
+    Serial.println("K: " + String(x_0(3)));
+
+    estimator = new QuatStateEstimator(x_0, 1/LOOP_FREQUENCY);
 
     // Reset timer before entering loop
     timer.reset();
@@ -1008,12 +1052,20 @@ void loop()
         readSensors();
 
         // Perform state estimation
-        doStateEstimation();
+        BLA::Matrix<4> x = estimator->onLoop(sensorPacket);
+
+        if(counter % 10 == 0) {
+            Serial.println("----- CURRENT STATE -----");
+            Serial.println("W: " + String(x(0)));
+            Serial.println("I: " + String(x(1)));
+            Serial.println("J: " + String(x(2)));
+            Serial.println("K: " + String(x(3)));
+        }
 
         // Transmit data packet to ground station at 10 Hz
         if (counter % 1 == 0)
         {
-            sendTelemetry();
+            // sendTelemetry();
         }
 
         // Print telemPacket to Serial monitor for debugging
