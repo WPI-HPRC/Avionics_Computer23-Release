@@ -674,6 +674,8 @@ void transitionToDrogueDeploy() {
 // Setup Kalman Filter an Obtain Initial Estimate
 QuatStateEstimator * estimator;
 constexpr static int initialLoopIters = 1000;
+// Initialize current state variable with zeros
+BLA::Matrix<4> currentState = {0,0,0,0};
 
 BLA::Matrix<4> obtainInitialEstimate() {
     float accelXSum = 0;
@@ -687,14 +689,17 @@ BLA::Matrix<4> obtainInitialEstimate() {
         accelZSum += sensorPacket.ac_z;
     };
 
+    // Get average of sensors
     float accelXAvg = accelXSum / initialLoopIters;
     float accelYAvg = accelYSum / initialLoopIters;
     float accelZAvg = accelZSum / initialLoopIters; 
 
+    // Get euler angles
     float roll_0 = atan(accelYAvg / accelZAvg); // [deg]
     float pitch_0 = atan(accelXAvg / G); // [deg]
     float yaw_0 = 0; // [deg]
 
+    // Get quaternion
     float cr = cos(roll_0 * 0.5);
     float sr = sin(roll_0 * 0.5);
     float cp = cos(pitch_0 * 0.5);
@@ -800,7 +805,7 @@ void setup()
     Serial.println("J: " + String(x_0(2)));
     Serial.println("K: " + String(x_0(3)));
 
-    estimator = new QuatStateEstimator(x_0, 1/LOOP_FREQUENCY);
+    estimator = new QuatStateEstimator(x_0, 0.01);
 
     // Reset timer before entering loop
     timer.reset();
@@ -1052,15 +1057,16 @@ void loop()
         readSensors();
 
         // Perform state estimation
-        BLA::Matrix<4> x = estimator->onLoop(sensorPacket);
+        currentState = estimator->onLoop(sensorPacket);
 
-        if(counter % 10 == 0) {
+        if(counter % 100 == 0) {
             Serial.println("----- CURRENT STATE -----");
-            Serial.println("W: " + String(x(0)));
-            Serial.println("I: " + String(x(1)));
-            Serial.println("J: " + String(x(2)));
-            Serial.println("K: " + String(x(3)));
-        }
+            Serial.println("W: " + String(currentState(0)));
+            Serial.println("I: " + String(currentState(1)));
+            Serial.println("J: " + String(currentState(2)));
+            Serial.println("K: " + String(currentState(3)));
+            Serial.println("Ac Z: " + String(sensorPacket.ac_z));
+        };
 
         // Transmit data packet to ground station at 10 Hz
         if (counter % 1 == 0)
