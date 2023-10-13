@@ -684,9 +684,9 @@ BLA::Matrix<4> obtainInitialEstimate() {
 
     for(int i=0; i < initialLoopIters; i++) {
         readSensors();
-        accelXSum += sensorPacket.ac_x;
-        accelYSum += sensorPacket.ac_y;
-        accelZSum += sensorPacket.ac_z;
+        accelXSum += sensorPacket.ac_x * 9.81;
+        accelYSum += sensorPacket.ac_y * 9.81;
+        accelZSum += sensorPacket.ac_z * 9.81;
     };
 
     // Get average of sensors
@@ -695,9 +695,9 @@ BLA::Matrix<4> obtainInitialEstimate() {
     float accelZAvg = accelZSum / initialLoopIters; 
 
     // Get euler angles
-    float roll_0 = atan(accelYAvg / accelZAvg); // [deg]
-    float pitch_0 = atan(accelXAvg / G); // [deg]
-    float yaw_0 = 0; // [deg]
+    float roll_0 = atan(accelYAvg / accelZAvg); // [rad]
+    float pitch_0 = atan(accelXAvg / G); // [rad]
+    float yaw_0 = 0; // [rad]
 
     // Get quaternion
     float cr = cos(roll_0 * 0.5);
@@ -717,7 +717,7 @@ BLA::Matrix<4> obtainInitialEstimate() {
     return x_update;
 };
 
-// Built-in Arduino setup function. Performs initilization tasks on startup.
+// Built-in Arduino setup function. Performs initialization tasks on startup.
 void setup()
 {
     // Initialize airbrake servo and set to fully retracted position
@@ -1059,13 +1059,12 @@ void loop()
         // Perform state estimation
         currentState = estimator->onLoop(sensorPacket);
 
-        if(counter % 100 == 0) {
+        if(counter % 1 == 0) {
             Serial.println("----- CURRENT STATE -----");
             Serial.println("W: " + String(currentState(0)));
             Serial.println("I: " + String(currentState(1)));
             Serial.println("J: " + String(currentState(2)));
             Serial.println("K: " + String(currentState(3)));
-            Serial.println("Ac Z: " + String(sensorPacket.ac_z));
         };
 
         // Transmit data packet to ground station at 10 Hz

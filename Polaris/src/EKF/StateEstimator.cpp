@@ -9,36 +9,131 @@ QuatStateEstimator::QuatStateEstimator(BLA::Matrix<4> initialOrientation, float 
 
 BLA::Matrix<4> QuatStateEstimator::onLoop(SensorFrame sensorPacket) {
 
-    BLA::Matrix<4> dx = measurementFunction(sensorPacket);
+    // Convert Accel values to m/s/s
+    sensorPacket.ac_x = sensorPacket.ac_x * 9.81;
+    sensorPacket.ac_y = sensorPacket.ac_y * 9.81;
+    sensorPacket.ac_z = sensorPacket.ac_z * 9.81;
+    // Convert gyro values from deg/s to rad/s
+    sensorPacket.gy_x = sensorPacket.gy_x * (PI / 180);
+    sensorPacket.gy_y = sensorPacket.gy_y * (PI / 180);
+    sensorPacket.gy_z = sensorPacket.gy_z * (PI / 180);
 
-    x_min = x_min + dx * dt;
+    BLA::Matrix<4> u = {sensorPacket.gy_x, sensorPacket.gy_y, sensorPacket.gy_z};
+    BLA::Matrix<3> y = {sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z};
+    
+    x_min = x + measurementFunction(sensorPacket) * dt;
 
     BLA::Matrix<4,4> A = measurementJacobian(sensorPacket);
 
-    P_min = P_min + (A * P_min * BLA::MatrixTranspose<BLA::Matrix<4,4>>(A)) + (Q * dt);
+    P_min = P_min + A * P * BLA::MatrixTranspose<BLA::Matrix<4,4>>(A) + Q*dt;
 
     BLA::Matrix<3> h = updateFunction(sensorPacket);
-
+    
     BLA::Matrix<3,4> C = updateJacobian(sensorPacket);
 
-    // BLA::Matrix<3,3> k_pre = C*P_min*BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) + R;
+    BLA::Matrix<3,3> K_1 = C*P*BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) + R;
 
-    // BLA::Matrix<4,3> K = P_min * BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) * BLA::Inverse(k_pre);
+    BLA::Matrix<4,3> K = P * BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) * BLA::Inverse(K_1);
+
+    x = x_min + K * (y - h);
+
+    x = x / BLA::Norm(x);
+
+    BLA::Matrix<4,4> eye4 = {
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    };
+
+    P = (eye4 - (K * C)) * P;
+    
+    // Convert values to m/s/s and rad/s
+    // sensorPacket.ac_x = sensorPacket.ac_x;
+    // sensorPacket.ac_y = sensorPacket.ac_y;
+    // sensorPacket.ac_z = sensorPacket.ac_z;
+    // sensorPacket.gy_x = sensorPacket.gy_x * (PI / 180);
+    // sensorPacket.gy_y = sensorPacket.gy_y * (PI / 180);
+    // sensorPacket.gy_z = sensorPacket.gy_z * (PI / 180);
+
+    // BLA::Matrix<4> dx = measurementFunction(sensorPacket);
+
+    // x_min = x_min + dx * dt;
+
+    // BLA::Matrix<4,4> A = measurementJacobian(sensorPacket);
+
+    // P_min = P_min + A * P * BLA::MatrixTranspose<BLA::Matrix<4,4>>(A) + Q * dt;
+
+    // BLA::Matrix<3> h = updateFunction(sensorPacket);
+
+    // BLA::Matrix<3,4> C = updateJacobian(sensorPacket);
+
+    // BLA::Matrix<3,3> k_pre = C*P*BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) + R;
+
+    // BLA::Matrix<4,3> K = P * BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) * BLA::Inverse(k_pre);
 
     // BLA::Matrix<3> y = {sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z};
 
-    // y = y * G;
 
-    // x = x_min + K * (y - h);
+    Serial.println("<----- A Matrix ----->");
+    for (int i = 0; i < A.Rows; i++) {
+        for (int j = 0; j < A.Cols; j++) {
+            // std::cout << matrix(i, j) << "\t";
+            Serial.print(String(A(i,j)) + "\t");
+        }
+        Serial.println("");
+    }
 
-    // P = (BLA::Eye<4,4>() - K * C) * P;
+    Serial.println("<----- C Matrix ----->");
+    for (int i = 0; i < C.Rows; i++) {
+        for (int j = 0; j < C.Cols; j++) {
+            // std::cout << matrix(i, j) << "\t";
+            Serial.print(String(C(i,j)) + "\t");
+        }
+        Serial.println("");
+    }
+    Serial.println("<----- H Matrix ----->");
+    for (int i = 0; i < h.Rows; i++) {
+        for (int j = 0; j < h.Cols; j++) {
+            // std::cout << matrix(i, j) << "\t";
+            Serial.print(String(h(i,j)) + "\t");
+        }
+        Serial.println("");
+    }
+    Serial.println("<----- P Matrix ----->");
+    for (int i = 0; i < P.Rows; i++) {
+        for (int j = 0; j < P.Cols; j++) {
+            // std::cout << matrix(i, j) << "\t";
+            Serial.print(String(P(i,j)) + "\t");
+        }
+        Serial.println("");
+    }
+    Serial.println("<----------------->");
+    
+
+    // x = x + K * (y - h);
+
+    // Serial.println("W: " + String(x(0)));
+    // Serial.println("I: " + String(x(1)));
+    // Serial.println("J: " + String(x(2)));
+    // Serial.println("K: " + String(x(3)));
+
+    // BLA::Matrix<4,4> eye4 = {
+    //     1, 0, 0, 0,
+    //     0, 1, 0, 0,
+    //     0, 0, 1, 0,
+    //     0, 0, 0, 1
+    // };
+
+
+    // P = (eye4 - K * C) * P;
 
     // BLA::Matrix<3> euler = quatToEuler(x_min);
     // Serial.println("Roll: " + String(euler(0)));
     // Serial.println("Pitch: " + String(euler(1)));
     // Serial.println("Yaw: " + String(euler(2)));
 
-    return this->x_min / BLA::Norm(x_min);
+    return this->x;
 }
 
 BLA::Matrix<4> QuatStateEstimator::measurementFunction(SensorFrame sensorPacket) {
@@ -53,7 +148,7 @@ BLA::Matrix<4> QuatStateEstimator::measurementFunction(SensorFrame sensorPacket)
         r, q, -p, 0
     };
 
-    return dx*x;
+    return (dx*x / BLA::Norm(x));
 
 };
 
@@ -70,24 +165,30 @@ BLA::Matrix<4, 4> QuatStateEstimator::measurementJacobian(SensorFrame sensorPack
         r, q, -p, 0
     };
 
+    float val = 0.5;
+
+    A = A * val;
+
     return A;
 }
 
 BLA::Matrix<3> QuatStateEstimator::updateFunction(SensorFrame sensorPacket) {
     BLA::Matrix<3> y = {sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z};
 
+    x = x / BLA::Norm(x);
+
     float w = x(0);
     float i = x(1);
     float j = x(2);
     float k = x(3);
 
-    BLA::Matrix<3,3> h = {
+    BLA::Matrix<3,3> rot = {
         1-2*(pow(j,2)+pow(k,2)), 2*(i*j-w*k), 2*(i*k+w*k),
         2*(i*j+w*k), 1-2*(pow(i,2)+pow(k,2)), 2*(j*k-w*k),
         2*(i*k-w*j), 2*(j*k+w*i), 1-2*(pow(i,2)+pow(j,2))
     };
 
-    return h*y;
+    return rot*y;
 };
 
 BLA::Matrix<3,4> QuatStateEstimator::updateJacobian(SensorFrame sensorPacket) {
@@ -96,15 +197,30 @@ BLA::Matrix<3,4> QuatStateEstimator::updateJacobian(SensorFrame sensorPacket) {
     float j = x(2);
     float k = x(3);
 
-    float y1 = sensorPacket.ac_x;
-    float y2 = sensorPacket.ac_y;
-    float y3 = sensorPacket.ac_z;
+    BLA::Matrix<4> q = {w,i,j,k};
+    float q_norm = BLA::Norm(q);
 
-    BLA::Matrix<3, 4> C = {
-    -2 * k * (y3 - y2), 2 * (j * y3 + k * y1), 2 * (i * y2 - 2 * j * y1), y3 * (2 * i + 2 * w) - 4 * k * y1 - 2 * w * y2,
-    2 * k * (y1 - y3), 2 * (j * y1 - 2 * i * y2), 2 * (i * y1 + k * y3), y3 * (2 * j - 2 * w) - 4 * k * y2 + 2 * w * y1,
-    2 * (i * y2 - j * y1), 2 * (k * y1 - 2 * i * y3 + w * y2), 2 * (k * y2 - w * y1), 2 * (i * y1 + j * y2 - 2 * k * y1)
-    };
+    w = w / q_norm;
+    i = i / q_norm;
+    j = j / q_norm;
+    k = k / q_norm;
 
-    return C / BLA::Norm(x);
+    BLA::Matrix<3, 4> C;
+
+    C(0, 0) = -4 * j * j - 4 * k * k;
+    C(0, 1) = 2 * (i * j - w * k);
+    C(0, 2) = 2 * (i * k + w * j);
+    C(0, 3) = -2 * (2 * j * j + 2 * k * k);
+    
+    C(1, 0) = 2 * (i * j + w * k);
+    C(1, 1) = -4 * i * i - 4 * k * k;
+    C(1, 2) = 2 * (j * k - w * k);
+    C(1, 3) = -2 * (2 * i * i + 2 * k * k);
+    
+    C(2, 0) = 2 * (i * k - w * j);
+    C(2, 1) = 2 * (j * k + w * i);
+    C(2, 2) = -4 * i * i - 4 * j * j;
+    C(2, 3) = -2 * (2 * i * i + 2 * j * j);
+
+    return C / q_norm;
 };
