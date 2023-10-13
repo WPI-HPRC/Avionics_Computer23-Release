@@ -21,17 +21,22 @@ BLA::Matrix<4> QuatStateEstimator::onLoop(SensorFrame sensorPacket) {
 
     BLA::Matrix<3,4> C = updateJacobian(sensorPacket);
 
-    BLA::Matrix<3,3> k_pre = C*P_min*BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) + R;
+    // BLA::Matrix<3,3> k_pre = C*P_min*BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) + R;
 
-    BLA::Matrix<4,3> K = P_min * BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) * BLA::Inverse(k_pre);
+    // BLA::Matrix<4,3> K = P_min * BLA::MatrixTranspose<BLA::Matrix<3,4>>(C) * BLA::Inverse(k_pre);
 
-    BLA::Matrix<3> y = {sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z};
+    // BLA::Matrix<3> y = {sensorPacket.ac_x, sensorPacket.ac_y, sensorPacket.ac_z};
 
-    y = y * G;
+    // y = y * G;
 
-    x = x_min + K * (y - h);
+    // x = x_min + K * (y - h);
 
     // P = (BLA::Eye<4,4>() - K * C) * P;
+
+    // BLA::Matrix<3> euler = quatToEuler(x_min);
+    // Serial.println("Roll: " + String(euler(0)));
+    // Serial.println("Pitch: " + String(euler(1)));
+    // Serial.println("Yaw: " + String(euler(2)));
 
     return this->x_min / BLA::Norm(x_min);
 }
