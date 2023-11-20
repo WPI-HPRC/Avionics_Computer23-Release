@@ -194,19 +194,6 @@ void calibrateIMU()
     gy_z_error = gy_z_error_sum / IMU_CALIBRATION_ITERS;
 
     Serial.println("IMU Calibration Complete");
-
-    // Serial.print("ac_x_error: ");
-    // Serial.println(ac_x_error);
-    // Serial.print("ac_y_error: ");
-    // Serial.println(ac_y_error);
-    // Serial.print("ac_z_error: ");
-    // Serial.println(ac_z_error);
-    // Serial.print("gy_x_error: ");
-    // Serial.println(gy_x_error);
-    // Serial.print("gy_y_error: ");
-    // Serial.println(gy_y_error);
-    // Serial.print("gy_z_error: ");
-    // Serial.println(gy_z_error);
 }
 
 float pressureToAltitude(float pressure_mBar);
@@ -673,7 +660,7 @@ void transitionToDrogueDeploy() {
 
 // Setup Kalman Filter an Obtain Initial Estimate
 QuatStateEstimator * estimator;
-constexpr static int initialLoopIters = 1000;
+constexpr static int initialLoopIters = 100;
 // Initialize current state variable with zeros
 BLA::Matrix<4> currentState = {0,0,0,0};
 
@@ -760,13 +747,13 @@ void setup()
 
     // Sensor initialization
     Wire.begin();
-    Wire.setClock(400000);
+    // Wire.setClock(400000);
     SPI.begin();
 
     Serial.println("Initializing sensor board...");
     if (sensorboard.setup())
     {
-        Serial.println("Sensor setup sucess!");
+        Serial.println("Sensor setup success!");
     }
     else
     {
@@ -794,7 +781,6 @@ void setup()
 
         calibrateIMU();
         calibrateAltitudeAGL();
-
     }
 
     BLA::Matrix<4> x_0 = obtainInitialEstimate();
@@ -805,7 +791,7 @@ void setup()
     Serial.println("J: " + String(x_0(2)));
     Serial.println("K: " + String(x_0(3)));
 
-    estimator = new QuatStateEstimator(x_0, 0.01);
+    estimator = new QuatStateEstimator(x_0, 0.025);
 
     // Reset timer before entering loop
     timer.reset();
@@ -1060,11 +1046,11 @@ void loop()
         currentState = estimator->onLoop(sensorPacket);
 
         if(counter % 1 == 0) {
-            Serial.println("----- CURRENT STATE -----");
-            Serial.println("W: " + String(currentState(0)));
-            Serial.println("I: " + String(currentState(1)));
-            Serial.println("J: " + String(currentState(2)));
-            Serial.println("K: " + String(currentState(3)));
+            // Serial.println("----- CURRENT STATE -----");
+            // Serial.println("W: " + String(currentState(0)));
+            // Serial.println("I: " + String(currentState(1)));
+            // Serial.println("J: " + String(currentState(2)));
+            // Serial.println("K: " + String(currentState(3)));
         };
 
         // Transmit data packet to ground station at 10 Hz

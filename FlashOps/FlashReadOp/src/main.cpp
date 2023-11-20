@@ -2,8 +2,8 @@
 #include <SPIFlash.h>
 #include <Wire.h>
 
-SPIFlash flash = SPIFlash(7); // 7 for Cube Board, 10 for Polaris
-uint32_t nextAddress = 16777216 * 0.875;
+SPIFlash flash = SPIFlash(10); // 7 for Cube Board, 10 for Polaris
+uint32_t nextAddress = 0;
 String structString = "";
 String addressString = "";
 String read = "";
@@ -14,7 +14,7 @@ String data = "";
 void setup()
 {
   Wire.begin();
-  Serial.begin(9600); // 115200 for Polaris, 9600 for Cube Board
+  Serial.begin(115200); // 115200 for Polaris, 9600 for Cube Board
 
   while (!Serial)
   {

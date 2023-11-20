@@ -2,6 +2,7 @@
 #include <SensorBoardLibraries\Barometer\Barometer_SB.h>
 #include "Config.h"
 #include "Sensor_Frames.hpp"
+#include <lib/MMC5983/SparkFun_MMC5983MA_Arduino_Library.h>
 
 /*
     @author Samay Govani
@@ -12,6 +13,7 @@ class Sensorboard{
     private:
     MS5611 barometer = MS5611(Wire, BARO_I2C_ADDRESS); // Barometer
     ICM42688P imu = ICM42688P(Wire, IMU_I2C_ADDRESS); // IMU
+    SFE_MMC5983MA mag;
     // SFE_UBLOX_GNSS gps; // GPS
 
     uint8_t Buffer[18] = {0};
@@ -28,6 +30,13 @@ class Sensorboard{
     bool setup(){
         if (!imu.setup()) return false;
         if (!barometer.setup()) return false;
+        if(!mag.begin()) return false;
+
+        mag.softReset();
+        mag.setFilterBandwidth(100);
+        mag.setContinuousModeFrequency(50);
+        mag.enableAutomaticSetReset();
+        mag.enableContinuousMode();
         // if (!gps.begin(Wire)) return false;
         // gps.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
         return true;
@@ -61,6 +70,18 @@ class Sensorboard{
         Inertial_Baro_frame.gy_x = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[6],Buffer[7]), 16.4);
         Inertial_Baro_frame.gy_y = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
         Inertial_Baro_frame.gy_z = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
+
+        uint32_t rawValX, rawValY, rawValZ;
+
+        mag.readFieldsXYZ(&rawValX, &rawValY, &rawValZ);
+
+        Inertial_Baro_frame.X_mag = rawValX;
+        Inertial_Baro_frame.Y_mag = rawValY;
+        Inertial_Baro_frame.Z_mag = rawValZ;
+
+        // Inertial_Baro_frame.X_mag = mag.getMeasurementX();
+        // Inertial_Baro_frame.Y_mag = mag.getMeasurementY();
+        // Inertial_Baro_frame.Z_mag = mag.getMeasurementZ();
 
         // Barometer
         barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&Inertial_Baro_frame.Pressure,&Inertial_Baro_frame.Temperature);

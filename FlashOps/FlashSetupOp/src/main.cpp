@@ -4,7 +4,7 @@
 
 
 
-SPIFlash flash = SPIFlash(7); // 7 for Cube Board, 10 for Polaris
+SPIFlash flash = SPIFlash(10); // 7 for Cube Board, 10 for Polaris
 uint32_t nextAddress;
 
 
