@@ -33,10 +33,10 @@ class Sensorboard{
         if(!mag.begin()) return false;
 
         mag.softReset();
-        mag.setFilterBandwidth(100);
-        mag.setContinuousModeFrequency(50);
-        mag.enableAutomaticSetReset();
-        mag.enableContinuousMode();
+        // mag.setFilterBandwidth(100);
+        // mag.setContinuousModeFrequency(50);
+        // mag.enableAutomaticSetReset();
+        // mag.enableContinuousMode();
         // if (!gps.begin(Wire)) return false;
         // gps.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
         return true;
@@ -71,18 +71,9 @@ class Sensorboard{
         Inertial_Baro_frame.gy_y = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[8],Buffer[9]), 16.4);
         Inertial_Baro_frame.gy_z = ICM42688P::processAxis(ICM42688P::processHighLowByte(Buffer[10],Buffer[11]), 16.4);
 
-        uint32_t rawValX, rawValY, rawValZ;
-
-        mag.readFieldsXYZ(&rawValX, &rawValY, &rawValZ);
-
-        Inertial_Baro_frame.X_mag = rawValX;
-        Inertial_Baro_frame.Y_mag = rawValY;
-        Inertial_Baro_frame.Z_mag = rawValZ;
-
-        // Inertial_Baro_frame.X_mag = mag.getMeasurementX();
-        // Inertial_Baro_frame.Y_mag = mag.getMeasurementY();
-        // Inertial_Baro_frame.Z_mag = mag.getMeasurementZ();
-
+        Inertial_Baro_frame.X_mag = mag.getMeasurementX();
+        Inertial_Baro_frame.Y_mag = mag.getMeasurementY();
+        Inertial_Baro_frame.Z_mag = mag.getMeasurementZ();
         // Barometer
         barometer.calculatePressureAndTemperature(MS5611::processHighMidLowByte(Buffer[12],Buffer[13],Buffer[14]),MS5611::processHighMidLowByte(Buffer[15],Buffer[16],Buffer[17]),&Inertial_Baro_frame.Pressure,&Inertial_Baro_frame.Temperature);
     }

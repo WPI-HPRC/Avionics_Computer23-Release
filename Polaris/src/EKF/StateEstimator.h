@@ -14,26 +14,28 @@ class QuatStateEstimator {
     QuatStateEstimator(BLA::Matrix<4> initialOrientation, float dt);
 
     BLA::Matrix<4> onLoop(SensorFrame sensorPacket);
+
+    BLA::Matrix<3,3> quat2rotm(BLA::Matrix<4> q);
     
     private:
     constexpr static int initialLoopIters = 1000;
 
     // Input variance from sensor data sheet
-    constexpr static float gyroVariance = 0.000262; // [Rad/s]
-    constexpr static float magVariance = 0.0008; // [T]
-    constexpr static float accelVariance = 0;
+    const float gyroVariance = 0.00489/sqrt(40); // [Rad/s]
+    const float magVariance = 0.008; // [T]
+    const float accelVariance = 0.00069/sqrt(40); // [m/s/s]
 
     float dt = 0.025;
 
     /* Magnetometer Calibration Values - Calculated using MATLAB */
     BLA::Matrix<3,3> softIronCal = {
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1
+        3.5838, 0.8795, -1.1902,
+        0.8795, 0.7596, -0.7211,
+        -1.1902, -0.7211, 1.2511
     };
 
     BLA::Matrix<3,1> hardIronCal = {
-        pow(1,5)*1.3210, pow(1,5)*1.3065, pow(1,5)*1.3228
+        pow(1,7)*1.3071, pow(1,7)*1.3130, pow(1,7)*1.3042
     };
 
     /* Magnetic Field Constants for Earth at WPI */
@@ -54,11 +56,20 @@ class QuatStateEstimator {
         0.0, 0.0, 0.0, 1.0,
     }; // Process Error Covariance
 
-    const BLA::Matrix<3,3> R = {
-        pow(magVariance, 2), 0.0, 0.0,
-        0.0, pow(magVariance, 2), 0.0,
-        0.0, 0.0, pow(magVariance, 2)
-    }; // Sensor Noise Covariance - Magnetometer
+    const BLA::Matrix<6,6> R = {
+        pow(accelVariance,2), 0, 0, 0, 0, 0,
+        0, pow(accelVariance, 2), 0, 0, 0, 0,
+        0, 0, pow(accelVariance, 2), 0, 0, 0,
+        0, 0, 0, pow(magVariance, 2), 0, 0,
+        0, 0, 0, 0, pow(magVariance, 2), 0,
+        0, 0, 0, 0, 0, pow(magVariance, 2)
+    }; // Sensor Noise Covariance - Accel and Mag
+
+    // const BLA::Matrix<3,3> R = {
+    //     pow(magVariance, 2), 0.0, 0.0,
+    //     0.0, pow(magVariance, 2), 0.0,
+    //     0.0, 0.0, pow(magVariance, 2)
+    // }; // Sensor Noise Covariance - Magnetometer
 
     const BLA::Matrix<3,3> gyroVar = {
         pow(gyroVariance, 2), 0, 0,
@@ -66,7 +77,7 @@ class QuatStateEstimator {
         0, 0, pow(gyroVariance, 2)
     };
 
-    const BLA::Matrix<4,4> Q = {
+    BLA::Matrix<4,4> Q = {
         0.01, 0, 0, 0,
         0, 0.01, 0, 0,
         0, 0, 0.01, 0,
@@ -83,10 +94,12 @@ class QuatStateEstimator {
     BLA::Matrix<4> measurementFunction(SensorFrame sensorPacket);
     BLA::Matrix<4,4> measurementJacobian(SensorFrame sensorPacket);
 
-    BLA::Matrix<3> updateFunction(SensorFrame sensorPacket);
-    BLA::Matrix<3,4> updateJacobian(SensorFrame sensorPacket);
+    BLA::Matrix<6> updateFunction(SensorFrame sensorPacket);
+    BLA::Matrix<6,4> updateJacobian(SensorFrame sensorPacket);
 
     BLA::Matrix<4,3> updateModelCovariance(SensorFrame sensorPacket);
+    
+    int estimatorDebug();
 
     BLA::Matrix<4> x;
     BLA::Matrix<4> x_min;

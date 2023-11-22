@@ -421,9 +421,6 @@ void readSensors()
     sensorPacket.gy_y -= gy_y_error;
     sensorPacket.gy_z -= gy_z_error;
 
-    // Calculate total acceleration
-    ac_total = sqrt((sensorPacket.ac_x * sensorPacket.ac_x + sensorPacket.ac_y * sensorPacket.ac_y + sensorPacket.ac_z * sensorPacket.ac_z));
-
     // Compute altitude from pressure
     altitude = pressureToAltitude(sensorPacket.Pressure) - altitude_AGL;
 
@@ -1044,6 +1041,11 @@ void loop()
 
         // Perform state estimation
         currentState = estimator->onLoop(sensorPacket);
+
+        Serial.print(currentState(0)); Serial.print(",");
+        Serial.print(currentState(1)); Serial.print(",");
+        Serial.print(currentState(2)); Serial.print(",");
+        Serial.println(currentState(3));
 
         if(counter % 1 == 0) {
             // Serial.println("----- CURRENT STATE -----");
