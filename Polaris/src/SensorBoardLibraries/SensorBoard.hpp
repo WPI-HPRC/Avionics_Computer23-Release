@@ -34,7 +34,8 @@ class Sensorboard{
 
         mag.softReset();
         // mag.setFilterBandwidth(100);
-        // mag.setContinuousModeFrequency(50);
+        mag.setContinuousModeFrequency(1000);
+        mag.enableContinuousMode();
         // mag.enableAutomaticSetReset();
         // mag.enableContinuousMode();
         // if (!gps.begin(Wire)) return false;

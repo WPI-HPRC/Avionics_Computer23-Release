@@ -98,11 +98,11 @@ class QuatStateEstimator {
     BLA::Matrix<6,4> updateJacobian(SensorFrame sensorPacket);
 
     BLA::Matrix<4,3> updateModelCovariance(SensorFrame sensorPacket);
-    
-    int estimatorDebug();
 
     BLA::Matrix<4> x;
     BLA::Matrix<4> x_min;
 
     float G = 9.81;
+
+    BLA::Matrix<4> quaternionMultiplication(BLA::Matrix<4> q1, BLA::Matrix<4> q2);
 };

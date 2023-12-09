@@ -37,8 +37,8 @@ void loop()
 {
 
   // ====================== Reading Flash ======================
-
-  while (nextAddress < 16777216 ){
+  Serial.println(nextAddress);
+  if (nextAddress < 16777216 ){
     flash.readStr(nextAddress, data, true);
     Serial.println(data);
 

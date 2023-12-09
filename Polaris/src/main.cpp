@@ -8,7 +8,8 @@
 #include "lib/Flash/Flash.h"
 // #include "SensorBoardLibraries/SensorBoard.hpp"
 #include "GroundStation/TelemetryBoard.h"
-#include <EKF/StateEstimator.h>
+// #include <EKF/StateEstimator.h>
+#include <EKF/FullStateEstimator.h>
 
 #define AvionicsSim true // Simulates data through ground station as if it were a receiver
 
@@ -179,15 +180,15 @@ void calibrateIMU()
         // Sum all readings
         ac_x_error_sum = ac_x_error_sum + sensorPacket.ac_x;
         ac_y_error_sum = ac_y_error_sum + sensorPacket.ac_y;
-        // ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
+        ac_z_error_sum = ac_z_error_sum + sensorPacket.ac_z;
         gy_x_error_sum = gy_x_error_sum + sensorPacket.gy_x;
         gy_y_error_sum = gy_y_error_sum + sensorPacket.gy_y;
         gy_z_error_sum = gy_z_error_sum + sensorPacket.gy_z;
     }
 
     // Divide the sum by 1000 to get the error value
-    ac_x_error = ac_x_error_sum / IMU_CALIBRATION_ITERS;
-    ac_y_error = ac_y_error_sum / IMU_CALIBRATION_ITERS;
+    // ac_x_error = ac_x_error_sum / IMU_CALIBRATION_ITERS;
+    // ac_y_error = ac_y_error_sum / IMU_CALIBRATION_ITERS;
     // ac_z_error = ac_z_error_sum / IMU_CALIBRATION_ITERS;
     gy_x_error = gy_x_error_sum / IMU_CALIBRATION_ITERS;
     gy_y_error = gy_y_error_sum / IMU_CALIBRATION_ITERS;
@@ -656,10 +657,12 @@ void transitionToDrogueDeploy() {
 }
 
 // Setup Kalman Filter an Obtain Initial Estimate
-QuatStateEstimator * estimator;
+// QuatStateEstimator * estimator;
+VehicleStateEstimator * fullEstimator;
 constexpr static int initialLoopIters = 100;
 // Initialize current state variable with zeros
 BLA::Matrix<4> currentState = {0,0,0,0};
+BLA::Matrix<10> currentFullState;
 
 BLA::Matrix<4> obtainInitialEstimate() {
     float accelXSum = 0;
@@ -788,7 +791,8 @@ void setup()
     Serial.println("J: " + String(x_0(2)));
     Serial.println("K: " + String(x_0(3)));
 
-    estimator = new QuatStateEstimator(x_0, 0.025);
+    // estimator = new QuatStateEstimator(x_0, 0.025);
+    fullEstimator = new VehicleStateEstimator({1,0,0,0,0,0,0,0,0,0}, 0.025);
 
     // Reset timer before entering loop
     timer.reset();
@@ -805,7 +809,7 @@ void loop()
     if (timer.check() == 1)
     {
 
-        // printLoopTime();
+        printLoopTime();
 
         switch (avionicsState)
         {
@@ -1040,12 +1044,13 @@ void loop()
         readSensors();
 
         // Perform state estimation
-        currentState = estimator->onLoop(sensorPacket);
+        // currentState = estimator->onLoop(sensorPacket);
+        currentFullState = fullEstimator->onLoop(sensorPacket);
 
-        Serial.print(currentState(0)); Serial.print(",");
-        Serial.print(currentState(1)); Serial.print(",");
-        Serial.print(currentState(2)); Serial.print(",");
-        Serial.println(currentState(3));
+        // Serial.print(currentState(0)); Serial.print(",");
+        // Serial.print(currentState(1)); Serial.print(",");
+        // Serial.print(currentState(2)); Serial.print(",");
+        // Serial.println(currentState(3));
 
         if(counter % 1 == 0) {
             // Serial.println("----- CURRENT STATE -----");
